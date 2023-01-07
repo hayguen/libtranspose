@@ -1,0 +1,6 @@
+[submodule "sse2neon"]
+	path = sse2neon
+	url = https://github.com/DLTcollab/sse2neon
+[submodule "cpu_features"]
+	path = cpu_features
+	url = https://github.com/google/cpu_features
