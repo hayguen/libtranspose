@@ -1,21 +1,12 @@
 
 #pragma once
 
-#if defined(__GNUC__)
-#  define ALWAYS_INLINE(return_type) inline return_type __attribute__ ((always_inline))
-#  define NEVER_INLINE(return_type) return_type __attribute__ ((noinline))
-#  define RESTRICT __restrict
+#include <hedley.h>
 
-#elif defined(_MSC_VER)
-#  define ALWAYS_INLINE(return_type) __forceinline return_type
-#  define NEVER_INLINE(return_type) __declspec(noinline) return_type
-#  define RESTRICT __restrict
+// shorten some used macros
+#  define ALWAYS_INLINE  HEDLEY_ALWAYS_INLINE
+#  define RESTRICT       HEDLEY_RESTRICT
 
-#else
-#  define ALWAYS_INLINE(return_type) inline return_type
-#  define NEVER_INLINE(return_type) return_type
-#  define RESTRICT __restrict__
-#endif
 
 namespace transpose
 {

@@ -3,6 +3,8 @@
 
 // see https://en.wikipedia.org/wiki/Transpose
 
+#include "transpose_defs.hpp"
+
 #include "transpose_cache_aware_kernels.hpp"
 
 #include "trans_kernel_AVX_4x4x64bit.hpp"
@@ -23,5 +25,3 @@
 #include "transpose_cache_aware_non_simd.hpp"
 #include "transpose_cache_oblivious.hpp"
 #include "transpose_naive.hpp"
-
-#include "transpose_defs.hpp"

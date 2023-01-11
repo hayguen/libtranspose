@@ -154,7 +154,7 @@ static inline bool have_AVX2() {
 template <class X, class Y>
 struct FuncId
 {
-  ALWAYS_INLINE(Y) operator()(X in) const {
+  ALWAYS_INLINE Y operator()(X in) const {
     return in;
   }
 };

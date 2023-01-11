@@ -25,7 +25,7 @@ struct AVX_4x4x64Kernel
 
   // => ?
 
-  static ALWAYS_INLINE(void) op_uu(const T * RESTRICT A_, T * RESTRICT B_, const unsigned rowSizeA, const unsigned rowSizeB) {
+  ALWAYS_INLINE static void op_uu(const T * RESTRICT A_, T * RESTRICT B_, const unsigned rowSizeA, const unsigned rowSizeB) {
     const BaseType * RESTRICT A = reinterpret_cast<const BaseType * RESTRICT>(A_);
     BaseType * RESTRICT B = reinterpret_cast<BaseType * RESTRICT>(B_);
     static_assert( sizeof(T) == sizeof(BaseType), "" );
@@ -60,7 +60,7 @@ struct AVX_4x4x64Kernel
     _mm256_storeu_pd(&B[3*rowSizeB], row3);
   }
 
-  static ALWAYS_INLINE(void) op_aa(const T * RESTRICT A_, T * RESTRICT B_, const unsigned rowSizeA, const unsigned rowSizeB) {
+  ALWAYS_INLINE static void op_aa(const T * RESTRICT A_, T * RESTRICT B_, const unsigned rowSizeA, const unsigned rowSizeB) {
     const BaseType * RESTRICT A = reinterpret_cast<const BaseType * RESTRICT>(A_);
     BaseType * RESTRICT B = reinterpret_cast<BaseType * RESTRICT>(B_);
     static_assert( sizeof(T) == sizeof(BaseType), "" );

@@ -30,7 +30,7 @@ struct SSE2_8x8x16Kernel
   // => looks to give best performance for 16 bit :-)
   //   performance is mostly better than Intel OneAPI IPP's ippiTranspose_*()
 
-  static ALWAYS_INLINE(void) op_uu(const T * RESTRICT A_, T * RESTRICT B_, const unsigned rowSizeA, const unsigned rowSizeB) {
+  ALWAYS_INLINE static void op_uu(const T * RESTRICT A_, T * RESTRICT B_, const unsigned rowSizeA, const unsigned rowSizeB) {
     const BaseType * RESTRICT A = reinterpret_cast<const BaseType * RESTRICT>(A_);
     BaseType * RESTRICT B = reinterpret_cast<BaseType * RESTRICT>(B_);
     static_assert( sizeof(T) == sizeof(BaseType), "" );
@@ -90,7 +90,7 @@ struct SSE2_8x8x16Kernel
     _mm_storeu_si128( reinterpret_cast<__m128i*>(&B[7*rowSizeB]), a7b7c7d7e7f7g7h7 );
   }
 
-  static ALWAYS_INLINE(void) op_aa(const T * RESTRICT A_, T * RESTRICT B_, const unsigned rowSizeA, const unsigned rowSizeB) {
+  ALWAYS_INLINE static void op_aa(const T * RESTRICT A_, T * RESTRICT B_, const unsigned rowSizeA, const unsigned rowSizeB) {
     const BaseType * RESTRICT A = reinterpret_cast<const BaseType * RESTRICT>(A_);
     BaseType * RESTRICT B = reinterpret_cast<BaseType * RESTRICT>(B_);
     static_assert( sizeof(T) == sizeof(BaseType), "" );

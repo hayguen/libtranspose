@@ -11,7 +11,7 @@ namespace transpose
 
 
 template <class T>
-static ALWAYS_INLINE(void) caware_kernel_out_tail( const T * RESTRICT pin, T * RESTRICT pout, const unsigned nRows, const unsigned nCols, const unsigned rowSizeA, const unsigned rowSizeB ) {
+ALWAYS_INLINE static void caware_kernel_out_tail( const T * RESTRICT pin, T * RESTRICT pout, const unsigned nRows, const unsigned nCols, const unsigned rowSizeA, const unsigned rowSizeB ) {
   unsigned out_off = 0; // out_row_off;
   // for( unsigned r = row; r < N; ++r, out_off += rowSizeB ) {
   for( unsigned r = 0; r < nRows; ++r, out_off += rowSizeB ) {
@@ -25,7 +25,7 @@ static ALWAYS_INLINE(void) caware_kernel_out_tail( const T * RESTRICT pin, T * R
 //////////////////////////////////////////////////////
 
 template <class T>
-static ALWAYS_INLINE(void) caware_kernel_in_tail( const T * RESTRICT pin, T * RESTRICT pout, const unsigned nRows, const unsigned nCols, const unsigned rowSizeA, const unsigned rowSizeB ) {
+ALWAYS_INLINE static void caware_kernel_in_tail( const T * RESTRICT pin, T * RESTRICT pout, const unsigned nRows, const unsigned nCols, const unsigned rowSizeA, const unsigned rowSizeB ) {
   unsigned in_off = 0; // in_row_off;
   // for( unsigned r = row; r < N; ++r, in_off += rowSizeA ) {
   for( unsigned r = 0; r < nRows; ++r, in_off += rowSizeA ) {

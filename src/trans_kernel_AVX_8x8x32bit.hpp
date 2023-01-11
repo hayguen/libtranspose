@@ -24,7 +24,7 @@ struct AVX_8x8x32Kernel
 
   // => looks to be similar or slightly slower than SSE_4x4x32Kernel !
 
-  static ALWAYS_INLINE(void) op_uu(const T * RESTRICT A_, T * RESTRICT B_, const unsigned rowSizeA, const unsigned rowSizeB) {
+  ALWAYS_INLINE static void op_uu(const T * RESTRICT A_, T * RESTRICT B_, const unsigned rowSizeA, const unsigned rowSizeB) {
     using BaseType = float;
     const BaseType * RESTRICT A = reinterpret_cast<const BaseType * RESTRICT>(A_);
     BaseType * RESTRICT B = reinterpret_cast<BaseType * RESTRICT>(B_);
@@ -91,7 +91,7 @@ struct AVX_8x8x32Kernel
         _mm256_storeu_ps(&B[7*rowSizeB], row7);
   }
 
-  static ALWAYS_INLINE(void) op_aa(const T * RESTRICT A_, T * RESTRICT B_, const unsigned rowSizeA, const unsigned rowSizeB) {
+  ALWAYS_INLINE static void op_aa(const T * RESTRICT A_, T * RESTRICT B_, const unsigned rowSizeA, const unsigned rowSizeB) {
     using BaseType = float;
     const BaseType * RESTRICT A = reinterpret_cast<const BaseType * RESTRICT>(A_);
     BaseType * RESTRICT B = reinterpret_cast<BaseType * RESTRICT>(B_);
@@ -162,11 +162,11 @@ struct AVX_8x8x32VINS_Kernel
   using BaseType = float;
 
   static constexpr bool HAS_AA = false;
-  static ALWAYS_INLINE(void) op_aa(const T * RESTRICT, T * RESTRICT, const unsigned, const unsigned) { }
+  ALWAYS_INLINE static void op_aa(const T * RESTRICT, T * RESTRICT, const unsigned, const unsigned) { }
 
   // => looks to be similar or slightly slower than AVX_8x8x32Kernel !
 
-  static ALWAYS_INLINE(void) op_uu(const T * RESTRICT A_, T * RESTRICT B_, const unsigned rowSizeA, const unsigned rowSizeB) {
+  ALWAYS_INLINE static void op_uu(const T * RESTRICT A_, T * RESTRICT B_, const unsigned rowSizeA, const unsigned rowSizeB) {
     const BaseType * RESTRICT A = reinterpret_cast<const BaseType * RESTRICT>(A_);
     BaseType * RESTRICT B = reinterpret_cast<BaseType * RESTRICT>(B_);
     static_assert( sizeof(T) == sizeof(BaseType), "" );

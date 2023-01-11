@@ -33,7 +33,7 @@ struct AVX_4x4x32Kernel
   // => looks 2 times slower than AVX_8x8x32Kernel or even SSE_4x4x32Kernel !
 
   // unaligned matrix pointers - or unaligned rowSizes
-  static ALWAYS_INLINE(void) op_uu(const T * RESTRICT A_, T * RESTRICT B_, const unsigned rowSizeA, const unsigned rowSizeB) {
+  ALWAYS_INLINE static void op_uu(const T * RESTRICT A_, T * RESTRICT B_, const unsigned rowSizeA, const unsigned rowSizeB) {
     const BaseType * RESTRICT A = reinterpret_cast<const BaseType * RESTRICT>(A_);
     BaseType * RESTRICT B = reinterpret_cast<BaseType * RESTRICT>(B_);
     static_assert( sizeof(T) == sizeof(BaseType), "" );
@@ -80,7 +80,7 @@ struct AVX_4x4x32Kernel
 
   // aa: aligned to aligned
   // aligned matrix pointers - and aligned rowSizes (aligned to multiples of KERNEL_SZ x int32_t = 4*4 = 16 bytes)
-  static ALWAYS_INLINE(void) op_aa(const T * RESTRICT A_, T * RESTRICT B_, const unsigned rowSizeA, const unsigned rowSizeB) {
+  ALWAYS_INLINE static void op_aa(const T * RESTRICT A_, T * RESTRICT B_, const unsigned rowSizeA, const unsigned rowSizeB) {
     const BaseType * RESTRICT A = reinterpret_cast<const BaseType * RESTRICT>(A_);
     BaseType * RESTRICT B = reinterpret_cast<BaseType * RESTRICT>(B_);
     static_assert( sizeof(T) == sizeof(BaseType), "" );

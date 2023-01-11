@@ -12,7 +12,7 @@ struct Naive4x4Kernel
   static constexpr unsigned KERNEL_SZ = 4;
   static constexpr bool HAS_AA = true;  // same operation
 
-  static ALWAYS_INLINE(void) op_uu(const T * RESTRICT A, T * RESTRICT B, const unsigned rowSizeA, const unsigned rowSizeB) {
+  ALWAYS_INLINE static void op_uu(const T * RESTRICT A, T * RESTRICT B, const unsigned rowSizeA, const unsigned rowSizeB) {
     // https://stackoverflow.com/questions/16941098/fast-memory-transpose-with-sse-avx-and-openmp
     const T r0[] = { A[0], A[1], A[2], A[3] }; // memcpy instead?
     A += rowSizeA;
@@ -42,7 +42,7 @@ struct Naive4x4Kernel
     B[3] = r3[3];
   }
 
-  static ALWAYS_INLINE(void) op_aa(const T * RESTRICT A, T * RESTRICT B, const unsigned rowSizeA, const unsigned rowSizeB) {
+  ALWAYS_INLINE static void op_aa(const T * RESTRICT A, T * RESTRICT B, const unsigned rowSizeA, const unsigned rowSizeB) {
     op_uu(A, B, rowSizeA, rowSizeB);
   }
 

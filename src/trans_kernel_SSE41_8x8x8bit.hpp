@@ -45,7 +45,7 @@ struct SSE41_8x8x8Kernel
 // from https://stackoverflow.com/questions/42162270/a-better-8x8-bytes-matrix-transpose-with-sse
 //   interleaved loads and stores
 
-// ALWAYS_INLINE(void) operator()(const T * RESTRICT A_, T * RESTRICT B_, const unsigned rowSizeA, const unsigned rowSizeB) const {
+// ALWAYS_INLINE void operator()(const T * RESTRICT A_, T * RESTRICT B_, const unsigned rowSizeA, const unsigned rowSizeB) const {
 #define KERNEL_OP_UU() do { \
     const BaseType * RESTRICT A = reinterpret_cast<const BaseType * RESTRICT>(A_);                  \
     BaseType * RESTRICT B = reinterpret_cast<BaseType * RESTRICT>(B_);                              \

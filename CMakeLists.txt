@@ -83,6 +83,12 @@ set( BENCH_SOURCES
     bench/matrix.hpp
     bench/bench.cpp
 )
+
+message(STATUS "CMAKE_CXX_COMPILER_ID: ${CMAKE_CXX_COMPILER_ID}")
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    message(STATUS "detected Clang compiler; activating -fsave-optimization-record")
+endif()
+
 foreach (VARIANT ${BENCH_VARIANTS})
     add_executable( bench${VARIANT} ${BENCH_SOURCES} ${LIB_SOURCES} )
     set_property(TARGET bench${VARIANT} PROPERTY CXX_STANDARD 11)
@@ -92,7 +98,11 @@ foreach (VARIANT ${BENCH_VARIANTS})
     target_include_directories(bench${VARIANT} PRIVATE src)
     target_include_directories(bench${VARIANT} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} )
     target_include_directories(bench${VARIANT} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/cpu_features/include )
+    target_include_directories(bench${VARIANT} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/hedley )
     target_link_libraries(bench${VARIANT} PRIVATE cpu_features  ${MATHLIB})
+    if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        target_compile_options(bench${VARIANT}  PRIVATE -fsave-optimization-record)
+    endif()
 endforeach()
 
 if ( (CMAKE_CXX_COMPILER_ID STREQUAL "GNU") OR (CMAKE_C_COMPILER_ID STREQUAL "Clang") )

@@ -33,3 +33,5 @@
 
 # cmake build directory
 build
+build_perf_hints
+perf_hints

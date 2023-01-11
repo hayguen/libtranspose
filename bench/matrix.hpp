@@ -43,11 +43,11 @@ struct matrix
     delete []raw_data;
   }
 
-  ALWAYS_INLINE(T) operator()(unsigned row, unsigned col) const { return data[row*rowSize+col]; }
-  ALWAYS_INLINE(T&) operator()(unsigned row, unsigned col) { return data[row*rowSize+col]; }
+  ALWAYS_INLINE T operator()(unsigned row, unsigned col) const { return data[row*rowSize+col]; }
+  ALWAYS_INLINE T& operator()(unsigned row, unsigned col) { return data[row*rowSize+col]; }
 
-  ALWAYS_INLINE(T*) row(unsigned row) { return &data[row*rowSize]; }
-  ALWAYS_INLINE(const T*) row(unsigned row) const { return &data[row*rowSize]; }
+  ALWAYS_INLINE T* row(unsigned row) { return &data[row*rowSize]; }
+  ALWAYS_INLINE const T* row(unsigned row) const { return &data[row*rowSize]; }
 
   template <class PRINT>
   void print() const {
