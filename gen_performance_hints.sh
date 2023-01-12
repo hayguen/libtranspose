@@ -16,7 +16,14 @@ if [ -z "${CX}" ]; then
   exit 1
 fi
 
-OV="/usr/lib/llvm-${CV}/share/opt-viewer/opt-viewer.py"
+# use opt-viewer.py, if we can find it in env OV  or in PATH,
+#   e.g. optview2 from https://github.com/OfekShilon/optview2
+if [ -z "${OV}" ]; then
+  OV=$(which opt-viewer.py)
+fi
+if [ -z "${OV}" ]; then
+  OV="/usr/lib/llvm-${CV}/share/opt-viewer/opt-viewer.py"
+fi
 
 echo "clang++:    ${CX}"
 echo "clang:      ${CC}"
@@ -39,7 +46,7 @@ if [ -z "$1" ] || [ "$1" = "h" ] || [ "$1" = "html" ]; then
 
   for N in $(echo "11 22 44 48 88"); do
     mkdir -p "${T}/bench${N}"
-    echo "generating html for bench${N} in  perf_hints/bench${N}/ .."
+    echo "generating html for bench${N} in  ${T}/bench${N}/ .."
     $OV --output-dir "${T}/bench${N}" --source-dir . build_perf_hints/CMakeFiles/bench${N}.dir/bench/
   done
 fi

@@ -30,24 +30,30 @@ namespace transpose
 //   Intel OneAPI IPP's ippiTranspose_*() is better
 
 template <class T>
-static void trans_mkl32( const mat_info<T> &in, mat_info<T> &out ) {
+static void trans_mkl32(
+  const mat_info &in, NO_ESCAPE const T * RESTRICT pin,
+  const mat_info &out, NO_ESCAPE T * RESTRICT pout )
+{
   using MklType = float;
   static_assert( sizeof(T) == sizeof(MklType), "" );
 
   mkl_somatcopy('R', 'T',
-    in.nRows, in.nCols, 1.0F, reinterpret_cast<const MklType*>( in.vector ), in.rowSize,
-    reinterpret_cast<MklType*>( out.vector ), out.rowSize
+    in.nRows, in.nCols, 1.0F, reinterpret_cast<const MklType*>( pin ), in.rowSize,
+    reinterpret_cast<MklType*>( pout ), out.rowSize
   );
 }
 
 template <class T>
-static void trans_mkl64( const mat_info<T> &in, mat_info<T> &out ) {
+static void trans_mkl64(
+  const mat_info &in, NO_ESCAPE const T * RESTRICT pin,
+  const mat_info &out, NO_ESCAPE T * RESTRICT pout )
+{
   using MklType = double;
   static_assert( sizeof(T) == sizeof(MklType), "" );
 
   mkl_domatcopy('R', 'T',
-    in.nRows, in.nCols, 1.0F, reinterpret_cast<const MklType*>( in.vector ), in.rowSize,
-    reinterpret_cast<MklType*>( out.vector ), out.rowSize
+    in.nRows, in.nCols, 1.0F, reinterpret_cast<const MklType*>( pin ), in.rowSize,
+    reinterpret_cast<MklType*>( pout ), out.rowSize
   );
 }
 

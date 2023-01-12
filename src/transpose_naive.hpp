@@ -10,12 +10,14 @@ namespace transpose
 //////////////////////////////////////////////////////
 
 template <class T, class U, class FUNC >
-static void naive_in( const mat_info<T> &in, mat_info<U> &out ) {
+HEDLEY_NO_THROW
+static void naive_in(
+  const mat_info &in, NO_ESCAPE const T * RESTRICT pin,
+  const mat_info &out, NO_ESCAPE U * RESTRICT pout )
+{
   // iterate linearly through input matrix indices
   const unsigned N = in.nRows;
   const unsigned M = in.nCols;
-  U * RESTRICT pout = out.vector;
-  const T * RESTRICT pin = in.vector;
   unsigned out_off, in_off;
   FUNC f;
 
@@ -30,12 +32,14 @@ static void naive_in( const mat_info<T> &in, mat_info<U> &out ) {
 //////////////////////////////////////////////////////
 
 template <class T, class U, class FUNC >
-static void naive_out( const mat_info<T> &in, mat_info<U> &out ) {
+HEDLEY_NO_THROW
+static void naive_out(
+  const mat_info &in, NO_ESCAPE const T * RESTRICT pin,
+  const mat_info &out, NO_ESCAPE U * RESTRICT pout )
+{
   // iterate linearly through output matrix indices
   const unsigned N = out.nRows;
   const unsigned M = out.nCols;
-  U * RESTRICT pout = out.vector;
-  const T * RESTRICT pin = in.vector;
   unsigned out_off, in_off;
   FUNC f;
 
@@ -51,11 +55,15 @@ static void naive_out( const mat_info<T> &in, mat_info<U> &out ) {
 
 // template <class T, class U, class FUNC = FuncId<T,U> >
 template <class T, class U, class FUNC >
-static void naive_meta( const mat_info<T> &in, mat_info<U> &out ) {
+HEDLEY_NO_THROW
+static void naive_meta(
+  const mat_info &in, NO_ESCAPE const T * RESTRICT pin,
+  const mat_info &out, NO_ESCAPE U * RESTRICT pout )
+{
   if ( in.nRows * sizeof(T) < in.nCols * sizeof(U) )
-    naive_in<T, U, FUNC>( in, out );
+    naive_in<T, U, FUNC>( in, pin, out, pout );
   else
-    naive_out<T, U, FUNC>( in, out );
+    naive_out<T, U, FUNC>( in, pin, out, pout );
 }
 
 }

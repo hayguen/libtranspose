@@ -10,7 +10,11 @@ namespace transpose
 //////////////////////////////////////////////////////
 
 template <class T, class U, class FUNC>
-static void caware_out( const mat_info<T> &in, mat_info<U> &out ) {
+HEDLEY_NO_THROW
+static void caware_out(
+  const mat_info &in, NO_ESCAPE const T * RESTRICT pin,
+  const mat_info &out, NO_ESCAPE U * RESTRICT pout )
+{
   constexpr unsigned L = ( numElemsInCacheLine<T>() < numElemsInCacheLine<U>() ? numElemsInCacheLine<T>() : numElemsInCacheLine<U>() );
   unsigned row, col;
   // iterate linearly through output matrix indices
@@ -21,8 +25,6 @@ static void caware_out( const mat_info<T> &in, mat_info<U> &out ) {
   const unsigned out_inc = L * out.rowSize;
   const unsigned in_inc = L * in.rowSize;
   unsigned out_row_off, in_row_off, out_off, in_off;
-  U * RESTRICT pout = out.vector;
-  const T * RESTRICT pin = in.vector;
   FUNC f;
 
   for( row = out_row_off = 0; row + L <= N; row += L, out_row_off += out_inc ) {
@@ -74,7 +76,11 @@ static void caware_out( const mat_info<T> &in, mat_info<U> &out ) {
 
 // cache aware: 5th try
 template <class T, class U, class FUNC>
-static void caware_in( const mat_info<T> &in, mat_info<U> &out ) {
+HEDLEY_NO_THROW
+static void caware_in(
+  const mat_info &in, NO_ESCAPE const T * RESTRICT pin,
+  const mat_info &out, NO_ESCAPE U * RESTRICT pout )
+{
   constexpr unsigned L = ( numElemsInCacheLine<T>() < numElemsInCacheLine<U>() ? numElemsInCacheLine<T>() : numElemsInCacheLine<U>() );
   unsigned row, col;
   // iterate linearly through input matrix indices
@@ -85,8 +91,6 @@ static void caware_in( const mat_info<T> &in, mat_info<U> &out ) {
   const unsigned out_inc = L * out.rowSize;
   const unsigned in_inc = L * in.rowSize;
   unsigned out_row_off, in_row_off, out_off, in_off;
-  U * RESTRICT pout = out.vector;
-  const T * RESTRICT pin = in.vector;
   FUNC f;
 
   for( row = in_row_off = 0; row + L <= N; row += L, in_row_off += in_inc ) {
@@ -137,12 +141,16 @@ static void caware_in( const mat_info<T> &in, mat_info<U> &out ) {
 //////////////////////////////////////////////////////
 
 template <class T, class U, class FUNC>
-static void caware_meta( const mat_info<T> &in, mat_info<U> &out ) {
+HEDLEY_NO_THROW
+static void caware_meta(
+  const mat_info &in, NO_ESCAPE const T * RESTRICT pin,
+  const mat_info &out, NO_ESCAPE U * RESTRICT pout )
+{
   //if ( in.nRows * sizeof(T) < in.nCols * sizeof(U) )
   if ( in.nRows < in.nCols )
-    caware_in<T, U, FUNC>( in, out );
+    caware_in<T, U, FUNC>( in, pin, out, pout );
   else
-    caware_out<T, U, FUNC>( in, out );
+    caware_out<T, U, FUNC>( in, pin, out, pout );
 }
 
 }

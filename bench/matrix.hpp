@@ -43,11 +43,11 @@ struct matrix
     delete []raw_data;
   }
 
-  ALWAYS_INLINE T operator()(unsigned row, unsigned col) const { return data[row*rowSize+col]; }
+  ALWAYS_INLINE HEDLEY_CONST T operator()(unsigned row, unsigned col) const { return data[row*rowSize+col]; }
   ALWAYS_INLINE T& operator()(unsigned row, unsigned col) { return data[row*rowSize+col]; }
 
   ALWAYS_INLINE T* row(unsigned row) { return &data[row*rowSize]; }
-  ALWAYS_INLINE const T* row(unsigned row) const { return &data[row*rowSize]; }
+  ALWAYS_INLINE HEDLEY_CONST const T* row(unsigned row) const { return &data[row*rowSize]; }
 
   template <class PRINT>
   void print() const {
@@ -69,15 +69,20 @@ struct matrix
 
   void fill(T v) {
     T * RESTRICT vec = data;
-    for( unsigned k = 0; k < nRows * rowSize; ++k )
+    const unsigned sz = nRows * rowSize;
+    for( unsigned k = 0; k < sz; ++k )
       vec[k] = v;
   }
 
-  T sum() const {
-    T * RESTRICT vec = data;
+  HEDLEY_PURE T sum() const {
+    const T * RESTRICT vec = data;
+    unsigned rowoff;
     T s = T(0);
-    for( unsigned k = 0; k < nRows * rowSize; ++k )
-      s += vec[k];
+    for( unsigned r = rowoff = 0; r < nRows; ++r, rowoff += rowSize ) {
+      for( unsigned c = 0; c < rowSize; ++c ) {
+        s += vec[ rowoff + c ];
+      }
+    }
     return s;
   }
 

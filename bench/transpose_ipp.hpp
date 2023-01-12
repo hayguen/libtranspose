@@ -22,40 +22,49 @@ namespace transpose
 //   performance is similar to SSE_4x4x32Kernel
 
 template <class T>
-static void trans_ipp32( const mat_info<T> &in, mat_info<T> &out ) {
+static void trans_ipp32(
+  const mat_info &in, NO_ESCAPE const T * RESTRICT pin,
+  const mat_info &out, NO_ESCAPE T * RESTRICT pout )
+{
   using IppType = Ipp32s;
   static_assert( sizeof(T) == sizeof(IppType), "" );
 
   IppiSize roi = { int(in.nCols), int(in.nRows) };  // width, then height
   ippiTranspose_32s_C1R(
-    reinterpret_cast<const IppType*>( in.vector ), int(in.rowSize * sizeof(T)),
-    reinterpret_cast<IppType*>( out.vector ), int(out.rowSize * sizeof(T)),
+    reinterpret_cast<const IppType*>( pin ), int(in.rowSize * sizeof(T)),
+    reinterpret_cast<IppType*>( pout ), int(out.rowSize * sizeof(T)),
     roi
   );
 }
 
 template <class T>
-static void trans_ipp16( const mat_info<T> &in, mat_info<T> &out ) {
+static void trans_ipp16(
+  const mat_info &in, NO_ESCAPE const T * RESTRICT pin,
+  const mat_info &out, NO_ESCAPE T * RESTRICT pout )
+{
   using IppType = Ipp16s;
   static_assert( sizeof(T) == sizeof(IppType), "" );
 
   IppiSize roi = { int(in.nCols), int(in.nRows) };  // width, then height
   ippiTranspose_16s_C1R(
-    reinterpret_cast<const IppType*>( in.vector ), int(in.rowSize * sizeof(T)),
-    reinterpret_cast<IppType*>( out.vector ), int(out.rowSize * sizeof(T)),
+    reinterpret_cast<const IppType*>( pin ), int(in.rowSize * sizeof(T)),
+    reinterpret_cast<IppType*>( pout ), int(out.rowSize * sizeof(T)),
     roi
   );
 }
 
 template <class T>
-static void trans_ipp8( const mat_info<T> &in, mat_info<T> &out ) {
+static void trans_ipp8(
+  const mat_info &in, NO_ESCAPE const T * RESTRICT pin,
+  const mat_info &out, NO_ESCAPE T * RESTRICT pout )
+{
   using IppType = Ipp8u;
   static_assert( sizeof(T) == sizeof(IppType), "" );
 
   IppiSize roi = { int(in.nCols), int(in.nRows) };  // width, then height
   ippiTranspose_8u_C1R(
-    reinterpret_cast<const IppType*>( in.vector ), int(in.rowSize * sizeof(T)),
-    reinterpret_cast<IppType*>( out.vector ), int(out.rowSize * sizeof(T)),
+    reinterpret_cast<const IppType*>( pin ), int(in.rowSize * sizeof(T)),
+    reinterpret_cast<IppType*>( pout ), int(out.rowSize * sizeof(T)),
     roi
   );
 }
