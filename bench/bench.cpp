@@ -473,7 +473,7 @@ static void enqueue_64bit_tests(
 
 
 int main( int argc, char* argv[] ) {
-  if ( !strcmp(argv[1], "-h") || !strcmp(argv[1], "/h") || !strcmp(argv[1], "--help") || !strcmp(argv[1], "/help") ) {
+  if ( 1 < argc && ( !strcmp(argv[1], "-h") || !strcmp(argv[1], "/h") || !strcmp(argv[1], "--help") || !strcmp(argv[1], "/help") ) ) {
     std::cout << "usage: " << argv[0] << " [-v] [-v] [<iters> [<plot_msamples> [<nRows> [<ncols> [<y_min> [ <y_max> [<input rowSize> [<output rowSize>] ] ] ] ] ] ] ]\n";
     std::cout << "  -v | -vv          verbose output\n";
     std::cout << "  <iters>           number of iterations for transpose benchmark; default: 100\n";
