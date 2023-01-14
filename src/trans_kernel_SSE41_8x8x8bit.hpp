@@ -37,7 +37,14 @@ struct SSE41_8x8x8Kernel
   const __m128i shuffle8x8Mask   = _mm_setr_epi8(0, 1, 2, 3, 8, 9, 10, 11, 4,  5, 6, 7, 12,  13, 14, 15)
 
 
-#define KERNEL_OP_AA() do { } while (0)
+#define KERNEL_OP_AA() do { \
+    (void)transpose4x4mask; \
+    (void)shuffle8x8Mask; \
+    (void)A_; \
+    (void)B_; \
+    (void)rowSizeA; \
+    (void)rowSizeB; \
+} while (0)
 
 // https://stackoverflow.com/questions/42162270/a-better-8x8-bytes-matrix-transpose-with-sse
 

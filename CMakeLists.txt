@@ -13,6 +13,10 @@ else()
 endif()
 
 
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/")
+include(cmake/compiler_warnings.cmake)
+
+
 # cmake -S . -B build -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release -DBUILD_GMOCK=OFF -DGTEST_HAS_ABSL=OFF -DINSTALL_GTEST=OFF
 # https://stackoverflow.com/questions/3766740/overriding-a-default-option-value-in-cmake-from-a-parent-cmakelists-txt
 SET(BUILD_SHARED_LIBS OFF CACHE BOOL "Build cpu_features library as shared.")
@@ -32,7 +36,6 @@ set(CMAKE_C_EXTENSIONS OFF)
 set(CMAKE_CXX_STANDARD 98)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-
 
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release")
@@ -62,19 +65,25 @@ endif()
 
 set(BENCH_VARIANTS "11;22;44;48;88")
 
-set( LIB_SOURCES
+# template headers
+set( LIB_TPL_SOURCES
     src/transpose_defs.hpp
+    src/transpose_tpl.hpp
+    # transpose variants / algorithms
     src/transpose_naive.hpp
+    src/transpose_cache_oblivious.hpp
     src/transpose_cache_aware_non_simd.hpp
     src/transpose_cache_aware_kernels.hpp
     src/transpose_cache_aware_kernel_specialization.hpp
-    src/transpose_cache_oblivious.hpp
+    # kernels of 4x4 and 8x8 blocks, insertable as template class in
+    # transpose_cache_aware_kernels.hpp or transpose_cache_aware_kernel_specialization.hpp
+    src/trans_kernel_naive.hpp
     src/trans_kernel_SSE_4x4x32bit.hpp
-    src/trans_kernel_AVX_8x8x32bit.hpp
+    src/trans_kernel_SSE2_8x8x16bit.hpp
+    src/trans_kernel_SSE41_8x8x8bit.hpp
     src/trans_kernel_AVX_4x4x32bit.hpp
     src/trans_kernel_AVX_4x4x64bit.hpp
-    src/trans_kernel_SSE41_8x8x8bit.hpp
-    src/trans_kernel_SSE2_8x8x16bit.hpp
+    src/trans_kernel_AVX_8x8x32bit.hpp
 )
 
 set( BENCH_SOURCES
@@ -90,7 +99,8 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 foreach (VARIANT ${BENCH_VARIANTS})
-    add_executable( bench${VARIANT} ${BENCH_SOURCES} ${LIB_SOURCES} )
+    add_executable( bench${VARIANT} ${BENCH_SOURCES} ${LIB_TPL_SOURCES} )
+    target_activate_cxx_compiler_warnings(bench${VARIANT})
     set_property(TARGET bench${VARIANT} PROPERTY CXX_STANDARD 11)
     set_property(TARGET bench${VARIANT} PROPERTY CXX_STANDARD_REQUIRED ON)
     target_compile_definitions(bench${VARIANT} PRIVATE BENCH_VARIANT=${VARIANT})

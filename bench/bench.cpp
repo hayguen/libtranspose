@@ -1,5 +1,5 @@
 
-#include <transpose.hpp>
+#include <transpose_tpl.hpp>
 
 #include "transpose_ipp.hpp"
 #include "transpose_mkl.hpp"
@@ -138,12 +138,17 @@ static inline bool have_AVX() {
   return false;
 }
 
+HEDLEY_DIAGNOSTIC_PUSH
+HEDLEY_DIAGNOSTIC_DISABLE_UNUSED_FUNCTION
+
 static inline bool have_AVX2() {
   #if defined(CPU_FEATURES_ARCH_X86_64)
     return have_AVX() && cpufx.avx2;
   #endif
   return false;
 }
+
+HEDLEY_DIAGNOSTIC_POP
 
 // have_SSE() have_SSE2() have_SSSE3() have_SSE4() have_AVX() have_AVX2()
 
@@ -184,6 +189,9 @@ static void trans_fake(
       pout[out_off+r] = f( (T)( (N * r) + ( c + 1 ) ) );
     }
   }
+
+  // suppress warnings
+  (void)pin;
 }
 
 
@@ -242,9 +250,6 @@ static void time_and_test( int test_idx, int iters,
   int verbose = 0,
   bool verify = true
 ) {
-  struct timeval tvs, tve;
-  uint64_t cycles_start, cycles_end;
-
   const transpose::mat_info in_info  {  in.nRows,  in.nCols,  in.rowSize };
   const transpose::mat_info out_info { out.nRows, out.nCols, out.rowSize };
 
@@ -305,6 +310,12 @@ static void enqueue_versatile_tests(
     enqueue( "kernel_out <naive>_aa     ", TRANSPOSE_CLASS::aa_out );
     enqueue( "kernel_meta<naive>_aa     ", TRANSPOSE_CLASS::aa_meta );
   }
+#else
+  // suppress warnings
+  (void)in;
+  (void)out;
+  (void)pin;
+  (void)pout;
 #endif
 }
 
@@ -334,6 +345,11 @@ static void enqueue_8bit_tests(
 #  endif
 
 #endif
+  // suppress warnings
+  (void)in;
+  (void)out;
+  (void)pin;
+  (void)pout;
 }
 
 
@@ -362,6 +378,11 @@ static void enqueue_16bit_tests(
 #  endif
 
 #endif
+  // suppress warnings
+  (void)in;
+  (void)out;
+  (void)pin;
+  (void)pout;
 }
 
 
@@ -437,6 +458,11 @@ static void enqueue_32bit_tests(
 #  endif
 
 #endif
+  // suppress warnings
+  (void)in;
+  (void)out;
+  (void)pin;
+  (void)pout;
 }
 
 
@@ -469,6 +495,11 @@ static void enqueue_64bit_tests(
 #  endif
 
 #endif
+  // suppress warnings
+  (void)in;
+  (void)out;
+  (void)pin;
+  (void)pout;
 }
 
 
@@ -602,7 +633,7 @@ int main( int argc, char* argv[] ) {
     /// plot a big vector into an 32-bit RGB(A) image
     const unsigned plotDataLen = msamples * 1024U * 1024U;
     float * plotData = new float[plotDataLen];
-    const unsigned x_per_pixel = plotDataLen / ( N - 1U );  // assume plotDataLen >> N
+    // const unsigned x_per_pixel = plotDataLen / ( N - 1U );  // assume plotDataLen >> N
     const float Mflt = M;
 
     const double ix1 = 0.0;
