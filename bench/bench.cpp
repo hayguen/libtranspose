@@ -16,6 +16,7 @@
 #include <iomanip>  // setprecision
 #include <algorithm>
 #include <cmath>
+#include <complex>
 
 #include <cpu_features_macros.h>
 
@@ -32,6 +33,8 @@
 
 
 ///////////////////////////////////////////
+
+static constexpr int N_PRINT_BEST = 5;
 
 // int8_t / uint16_t / uint32_t / uint64_t
 // #define/#if for SAME_DTYPE_SIZES / DTYPEX_SZ to avoid c++17 which brings if constexpr()
@@ -70,9 +73,15 @@
   #define DTYPEX_SZ 4
 #elif BENCH_VARIANT == 88
   // 64 bit -> 64 bit ; 8 byte -> 8 byte
+#if 0
   using DTYPEX = int64_t;
   using DTYPEY = int64_t;
   using DTYPEP = int64_t;
+#else
+  using DTYPEX = std::complex<float>;
+  using DTYPEY = std::complex<float>;
+  using DTYPEP = std::complex<float>;
+#endif
   #define SAME_DTYPE_SIZES  1
   #define DTYPEX_SZ 8
 #endif
@@ -161,17 +170,7 @@ typedef void (*transpose_function)(
   const transpose::mat_info &, NO_ESCAPE const DTYPEX * RESTRICT,
   const transpose::mat_info &, NO_ESCAPE DTYPEY * RESTRICT );
 
-// identity function - could be used for type conversion or other transforms
-template <class X, class Y>
-struct FuncId
-{
-  ALWAYS_INLINE HEDLEY_CONST
-  Y operator()(X in) const {
-    return in;
-  }
-};
-
-template <class T, class U, class FUNC>
+template <class T, class U, bool CONJUGATE>
 HEDLEY_NO_THROW
 static void trans_fake(
   const transpose::mat_info &, NO_ESCAPE const T * RESTRICT pin,
@@ -182,11 +181,18 @@ static void trans_fake(
   const unsigned M = out.nCols;
   const unsigned out_RS = out.rowSize;
   unsigned out_off;
-  FUNC f;
 
   for( unsigned c = out_off = 0; c < N; ++c, out_off += out_RS ) {
     for( unsigned r = 0; r < M; ++r ) {
-      pout[out_off+r] = f( (T)( (N * r) + ( c + 1 ) ) );
+      U& cr = pout[ c * out_RS +r ];
+      cr = (T)( (N * r) + ( c + 1 ) );
+      assert( out_off == c * out_RS );
+      if constexpr ( std::is_same<T, std::complex<float> >::value ) {
+        if constexpr (CONJUGATE)
+          cr = std::conj( std::complex<float>( (N * r) + ( c + 1 ), 1 + (c & 1) ) );
+        else
+          cr = std::complex<float>( (N * r) + ( c + 1 ), 1 + (c & 1) );
+      }
     }
   }
 
@@ -202,6 +208,7 @@ struct test_s
   double cycles;
   uint32_t duration;
   int order;
+  bool cj;
 };
 
 static test_s tests[32];
@@ -261,24 +268,27 @@ static void time_and_test( int test_idx, int iters,
     sw_bench.stop();
     tests[test_idx].duration = sw_bench.millis();
     tests[test_idx].cycles = sw_bench.cycles();
-    std::cout << std::setw(4) << tests[test_idx].duration << " ms ";
-    std::cout << "(= " << std::scientific << std::setprecision(2) << tests[test_idx].cycles << " cycles)\t";
+    if ( 1 || t ) {
+      std::cout << std::setw(4) << tests[test_idx].duration << " ms ";
+      std::cout << "(= " << std::scientific << std::setprecision(2) << tests[test_idx].cycles << " cycles)\t";
+    }
   }
   std::cout << "\n";
 
   if (verbose >= 2)
     out.print<DTYPEP>();
   if (verify)
-    out.verify_transposed();
+    out.verify_transposed(tests[test_idx].cj);
 }
 
-static void enqueue(const char *n, transpose_function f) {
+static void enqueue(const char *n, transpose_function f, bool cj = false) {
   assert( n_tests < 32 );
   tests[n_tests].n = n;
   tests[n_tests].f = f;
   tests[n_tests].cycles = -1.0;
   tests[n_tests].duration = 0;
   tests[n_tests].order = -1;
+  tests[n_tests].cj = cj;
   ++n_tests;
 }
 
@@ -286,22 +296,22 @@ static void enqueue_versatile_tests(
   const transpose::mat_info &in, NO_ESCAPE const DTYPEX * RESTRICT pin,
   const transpose::mat_info &out, NO_ESCAPE DTYPEY * RESTRICT pout )
 {
-  enqueue( "fake                      ", trans_fake<DTYPEX, DTYPEY, FuncId<DTYPEX, DTYPEY> > );
+  enqueue( "fake                      ", trans_fake<DTYPEX, DTYPEY, false> );
 
-  enqueue( "naive_in                  ", transpose::naive_in<DTYPEX,   DTYPEY,  FuncId<DTYPEX, DTYPEY> > );
-  enqueue( "naive_out                 ", transpose::naive_out<DTYPEX,  DTYPEY,  FuncId<DTYPEX, DTYPEY> > );
-  enqueue( "naive_meta                ", transpose::naive_meta<DTYPEX,  DTYPEY, FuncId<DTYPEX, DTYPEY> > );
+  enqueue( "naive_in                  ", transpose::naive_in<  DTYPEX,  DTYPEY> );
+  enqueue( "naive_out                 ", transpose::naive_out< DTYPEX,  DTYPEY> );
+  enqueue( "naive_meta                ", transpose::naive_meta<DTYPEX,  DTYPEY> );
 
-  enqueue( "cache_oblivious_in        ", transpose::cache_oblivious_in  <DTYPEX, DTYPEY, FuncId<DTYPEX, DTYPEY> > );
-  enqueue( "cache_oblivious_out       ", transpose::cache_oblivious_out <DTYPEX, DTYPEY, FuncId<DTYPEX, DTYPEY> > );
-  enqueue( "cache_oblivious_meta      ", transpose::cache_oblivious_meta<DTYPEX, DTYPEY, FuncId<DTYPEX, DTYPEY> > );
+  enqueue( "cache_oblivious_in        ", transpose::cache_oblivious_in  <DTYPEX, DTYPEY> );
+  enqueue( "cache_oblivious_out       ", transpose::cache_oblivious_out <DTYPEX, DTYPEY> );
+  enqueue( "cache_oblivious_meta      ", transpose::cache_oblivious_meta<DTYPEX, DTYPEY> );
 
-  enqueue( "cache_aware_in            ", transpose::caware_in< DTYPEX,  DTYPEY, FuncId<DTYPEX, DTYPEY> > );
-  enqueue( "cache_aware_out           ", transpose::caware_out<DTYPEX,  DTYPEY, FuncId<DTYPEX, DTYPEY> > );
-  enqueue( "cache_aware_meta          ", transpose::caware_meta<DTYPEX, DTYPEY, FuncId<DTYPEX, DTYPEY> > );
+  enqueue( "cache_aware_in            ", transpose::caware_in<  DTYPEX, DTYPEY> );
+  enqueue( "cache_aware_out           ", transpose::caware_out< DTYPEX, DTYPEY> );
+  enqueue( "cache_aware_meta          ", transpose::caware_meta<DTYPEX, DTYPEY> );
 
 #if SAME_DTYPE_SIZES
-  using TRANSPOSE_CLASS = transpose::caware_kernel<DTYPEX, transpose_kernels::Naive4x4Kernel<DTYPEX> >;
+  using TRANSPOSE_CLASS = transpose::caware_kernel<DTYPEX, false, transpose_kernels::Naive4x4Kernel<DTYPEX> >;
   enqueue( "kernel_in  <naive>_uu     ", TRANSPOSE_CLASS::uu_in );
   enqueue( "kernel_out <naive>_uu     ", TRANSPOSE_CLASS::uu_out );
   enqueue( "kernel_meta<naive>_uu     ", TRANSPOSE_CLASS::uu_meta );
@@ -328,8 +338,8 @@ static void enqueue_8bit_tests(
 
 #  ifdef HAVE_SSE41_8x8x8_KERNEL
      if ( have_SSE41() ) {
-       using TRANSPOSE_CLASS = transpose::caware_kernel<DTYPEX, transpose_kernels::SSE41_8x8x8Kernel<DTYPEX> >;
-       enqueue( "kernel_in  <SSE41_8x8>_uu ", TRANSPOSE_CLASS::uu_in );
+       using TRANSPOSE_CLASS = transpose::caware_kernel<DTYPEX, false, transpose_kernels::SSE41_8x8x8Kernel<DTYPEX, false> >;
+       enqueue( "kernel_in  <SSE41_8x8>_uu ", TRANSPOSE_CLASS::uu_in, false );
        enqueue( "kernel_out <SSE41_8x8>_uu ", TRANSPOSE_CLASS::uu_out );
        if ( TRANSPOSE_CLASS::aa_possible(in, pin, out, pout) ) {
          enqueue( "kernel_in  <SSE41_8x8>_aa ", TRANSPOSE_CLASS::aa_in );
@@ -361,7 +371,7 @@ static void enqueue_16bit_tests(
 
 #  ifdef HAVE_SSE2_8x8x16_KERNEL
      if ( have_SSE2() ) {
-       using TRANSPOSE_CLASS = transpose::caware_kernel<DTYPEX, transpose_kernels::SSE2_8x8x16Kernel<DTYPEX> >;
+       using TRANSPOSE_CLASS = transpose::caware_kernel<DTYPEX, false, transpose_kernels::SSE2_8x8x16Kernel<DTYPEX> >;
        enqueue( "kernel_in  <SSE2_8x8>_uu  ", TRANSPOSE_CLASS::uu_in );
        enqueue( "kernel_out <SSE2_8x8>_uu  ", TRANSPOSE_CLASS::uu_out );
        if ( TRANSPOSE_CLASS::aa_possible(in, pin, out, pout) ) {
@@ -394,7 +404,7 @@ static void enqueue_32bit_tests(
 
 #  ifdef HAVE_SSE_4X4X32_KERNEL
      if ( have_SSE() ) {
-       using SSE_TRANSPOSE_CLASS = transpose::caware_kernel<DTYPEX, transpose_kernels::SSE_4x4x32Kernel<DTYPEX> >;
+       using SSE_TRANSPOSE_CLASS = transpose::caware_kernel<DTYPEX, false, transpose_kernels::SSE_4x4x32Kernel<DTYPEX> >;
        enqueue( "kernel_in  <SSE_4x4>_uu   ", SSE_TRANSPOSE_CLASS::uu_in );
        enqueue( "kernel_out <SSE_4x4>_uu   ", SSE_TRANSPOSE_CLASS::uu_out );
        if ( SSE_TRANSPOSE_CLASS::aa_possible(in, pin, out, pout) ) {
@@ -404,12 +414,12 @@ static void enqueue_32bit_tests(
      }
 
      // looks, that out order is always faster with the SSE kernel
-     // time_and_test( "kernel_meta<SSE>  ", transpose::caware_kernel<DTYPEX, SSE_4x4x32Kernel<DTYPEX> >::uu_meta, iters, in, out );
+     // time_and_test( "kernel_meta<SSE>  ", transpose::caware_kernel<DTYPEX, false, SSE_4x4x32Kernel<DTYPEX> >::uu_meta, iters, in, out );
 #  endif
 
 #  ifdef HAVE_AVX_4X4X32_KERNEL
      if ( have_AVX() ) {
-       using AVX44_TRANSPOSE_CLASS = transpose::caware_kernel<DTYPEX, transpose_kernels::AVX_4x4x32Kernel<DTYPEX> >;
+       using AVX44_TRANSPOSE_CLASS = transpose::caware_kernel<DTYPEX, false, transpose_kernels::AVX_4x4x32Kernel<DTYPEX> >;
        enqueue( "kernel_in  <AVX_4x4>_uu   ", AVX44_TRANSPOSE_CLASS::uu_in );
        enqueue( "kernel_out <AVX_4x4>_uu   ", AVX44_TRANSPOSE_CLASS::uu_out );
        if ( AVX44_TRANSPOSE_CLASS::aa_possible(in, pin, out, pout) ) {
@@ -421,7 +431,7 @@ static void enqueue_32bit_tests(
 
 #  ifdef HAVE_AVX_8X8X32_KERNEL
      if ( have_AVX() ) {
-       using AVX88_TRANSPOSE_CLASS = transpose::caware_kernel<DTYPEX, transpose_kernels::AVX_8x8x32Kernel<DTYPEX> >;
+       using AVX88_TRANSPOSE_CLASS = transpose::caware_kernel<DTYPEX, false, transpose_kernels::AVX_8x8x32Kernel<DTYPEX> >;
        enqueue( "kernel_in  <AVX_8x8>_uu   ", AVX88_TRANSPOSE_CLASS::uu_in );
        enqueue( "kernel_out <AVX_8x8>_uu   ", AVX88_TRANSPOSE_CLASS::uu_out );
        if ( AVX88_TRANSPOSE_CLASS::aa_possible(in, pin, out, pout) ) {
@@ -431,7 +441,7 @@ static void enqueue_32bit_tests(
      }
 
      if ( have_AVX() ) {
-       using AVX88I_TRANSPOSE_CLASS = transpose::caware_kernel<DTYPEX, transpose_kernels::AVX_8x8x32VINS_Kernel<DTYPEX> >;
+       using AVX88I_TRANSPOSE_CLASS = transpose::caware_kernel<DTYPEX, false, transpose_kernels::AVX_8x8x32VINS_Kernel<DTYPEX> >;
        enqueue( "kernel_in  <AVX_8x8I>_uu  ", AVX88I_TRANSPOSE_CLASS::uu_in );
        enqueue( "kernel_out <AVX_8x8I>_uu  ", AVX88I_TRANSPOSE_CLASS::uu_out );
        if ( AVX88I_TRANSPOSE_CLASS::aa_possible(in, pin, out, pout) ) {
@@ -474,12 +484,20 @@ static void enqueue_64bit_tests(
 
 #  ifdef HAVE_AVX_4X4X64_KERNEL
      if ( have_AVX() ) {
-       using TRANSPOSE_CLASS = transpose::caware_kernel<DTYPEX, transpose_kernels::AVX_4x4x64Kernel<DTYPEX> >;
+       using TRANSPOSE_CLASS = transpose::caware_kernel<DTYPEX, false, transpose_kernels::AVX_4x4x64Kernel<DTYPEX, false> >;
        enqueue( "kernel_in  <AVX_4x4>_uu   ", TRANSPOSE_CLASS::uu_in );
        enqueue( "kernel_out <AVX_4x4>_uu   ", TRANSPOSE_CLASS::uu_out );
        if ( TRANSPOSE_CLASS::aa_possible(in, pin, out, pout) ) {
          enqueue( "kernel_in  <AVX_4x4>_aa   ", TRANSPOSE_CLASS::aa_in );
          enqueue( "kernel_out <AVX_4x4>_aa   ", TRANSPOSE_CLASS::aa_out );
+       }
+
+       using TRANSPOSE_CJ_CL = transpose::caware_kernel<DTYPEX, true, transpose_kernels::AVX_4x4x64Kernel<DTYPEX, true> >;
+       enqueue( "kernel_in  <AVX_4x4>_uu cj", TRANSPOSE_CJ_CL::uu_in, true );
+       enqueue( "kernel_out <AVX_4x4>_uu cj", TRANSPOSE_CJ_CL::uu_out, true );
+       if ( TRANSPOSE_CJ_CL::aa_possible(in, pin, out, pout) ) {
+         enqueue( "kernel_in  <AVX_4x4>_aa cj", TRANSPOSE_CJ_CL::aa_in, true );
+         enqueue( "kernel_out <AVX_4x4>_aa cj", TRANSPOSE_CJ_CL::aa_out, true );
        }
      }
 #  endif
@@ -600,8 +618,8 @@ int main( int argc, char* argv[] ) {
 
 #if 0
   n_tests = 0;
-  enqueue( "kernel_in <SSE_8>  ", transpose::caware_kernel<DTYPEX,  transpose_kernels::SSE41_8x8x8Kernel<DTYPEX> >::uu_in );
-  // enqueue( "kernel_out<SSE_8>  ", transpose::caware_kernel<DTYPEX, transpose_kernels::SSE8x8x64Kernel<DTYPEX> >::uu_out );
+  enqueue( "kernel_in <SSE_8>  ", transpose::caware_kernel<DTYPEX, false, transpose_kernels::SSE41_8x8x8Kernel<DTYPEX> >::uu_in );
+  // enqueue( "kernel_out<SSE_8>  ", transpose::caware_kernel<DTYPEX, false, transpose_kernels::SSE8x8x64Kernel<DTYPEX> >::uu_out );
 #endif
 
   // run all tests
@@ -610,7 +628,7 @@ int main( int argc, char* argv[] ) {
       time_and_test( k, iters, in, out, verbose );
     }
 
-    for (int n = 0; n < 3; ++n) {
+    for (int n = 0; n < std::min(n_tests, N_PRINT_BEST); ++n) {
       int min_idx = -1;
       for (int k = 1; k < n_tests; ++k) {
         if ( tests[k].order < 0 && ( min_idx < 0 || tests[k].cycles < tests[min_idx].cycles ) )
@@ -763,7 +781,7 @@ int main( int argc, char* argv[] ) {
 #endif
       }
       // transpose() is necessary
-      using SSE_TRANSPOSE_CLASS = transpose::caware_kernel<DTYPEX, transpose_kernels::SSE_4x4x32Kernel<DTYPEX> >;
+      using SSE_TRANSPOSE_CLASS = transpose::caware_kernel<DTYPEX, false, transpose_kernels::SSE_4x4x32Kernel<DTYPEX> >;
       // transpose_function ftrans = ( SSE_TRANSPOSE_CLASS::aa_possible(out_info, in_info) )
       //   ? SSE_TRANSPOSE_CLASS::aa_out
       //   : SSE_TRANSPOSE_CLASS::uu_out;
@@ -798,7 +816,7 @@ int main( int argc, char* argv[] ) {
           in.data[ row_off + hu ] += 1;
         }
       }
-      using SSE_TRANSPOSE_CLASS = transpose::caware_kernel<DTYPEX, transpose_kernels::SSE_4x4x32Kernel<DTYPEX> >;
+      using SSE_TRANSPOSE_CLASS = transpose::caware_kernel<DTYPEX, false, transpose_kernels::SSE_4x4x32Kernel<DTYPEX> >;
       SSE_TRANSPOSE_CLASS::uu_out( in_info, in.data, out_info, out.data );
     }
     sw_bench.stop();

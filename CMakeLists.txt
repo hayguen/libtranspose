@@ -28,15 +28,6 @@ add_subdirectory( cpu_features EXCLUDE_FROM_ALL )
 # now, we have the library cpu_features
 
 
-# C90 requires the gcc extensions for function attributes like always_inline
-# C99 provides the function attributes: no gcc extensions required
-set(CMAKE_C_STANDARD 99)
-set(CMAKE_C_EXTENSIONS OFF)
-
-set(CMAKE_CXX_STANDARD 98)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
-
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release")
     message(STATUS "Build type not specified: defaulting to release.")
@@ -73,6 +64,7 @@ set( LIB_TPL_SOURCES
     src/transpose_naive.hpp
     src/transpose_cache_oblivious.hpp
     src/transpose_cache_aware_non_simd.hpp
+    src/transpose_cache_aware_tails.hpp
     src/transpose_cache_aware_kernels.hpp
     src/transpose_cache_aware_kernel_specialization.hpp
     # kernels of 4x4 and 8x8 blocks, insertable as template class in
@@ -80,10 +72,11 @@ set( LIB_TPL_SOURCES
     src/trans_kernel_naive.hpp
     src/trans_kernel_SSE_4x4x32bit.hpp
     src/trans_kernel_SSE2_8x8x16bit.hpp
-    src/trans_kernel_SSE41_8x8x8bit.hpp
     src/trans_kernel_AVX_4x4x32bit.hpp
-    src/trans_kernel_AVX_4x4x64bit.hpp
     src/trans_kernel_AVX_8x8x32bit.hpp
+    # kernels with macro definitions
+    src/trans_kernel_AVX_4x4x64bit_macros.hpp
+    src/trans_kernel_SSE41_8x8x8bit_macros.hpp
 )
 
 set( BENCH_SOURCES
@@ -101,7 +94,7 @@ endif()
 foreach (VARIANT ${BENCH_VARIANTS})
     add_executable( bench${VARIANT} ${BENCH_SOURCES} ${LIB_TPL_SOURCES} )
     target_activate_cxx_compiler_warnings(bench${VARIANT})
-    set_property(TARGET bench${VARIANT} PROPERTY CXX_STANDARD 11)
+    set_property(TARGET bench${VARIANT} PROPERTY CXX_STANDARD 17)
     set_property(TARGET bench${VARIANT} PROPERTY CXX_STANDARD_REQUIRED ON)
     target_compile_definitions(bench${VARIANT} PRIVATE BENCH_VARIANT=${VARIANT})
     # target_compile_definitions(bench${VARIANT} PRIVATE _USE_MATH_DEFINES)

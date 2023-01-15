@@ -9,13 +9,15 @@ namespace transpose
 {
 
 
-template <class T>
-struct caware_kernel<T, transpose_kernels::KERNEL_NAME<T> >
+template <class T, bool CONJUGATE_TPL>
+struct caware_kernel<T, CONJUGATE_TPL, transpose_kernels::KERNEL_NAME<T, CONJUGATE_TPL> >
 {
-  using KERNEL = transpose_kernels::KERNEL_NAME<T>;
+  using KERNEL = transpose_kernels::KERNEL_NAME<T, CONJUGATE_TPL>;
   using BaseType = typename KERNEL::BaseType;
   static constexpr bool HAS_AA = KERNEL::HAS_AA;
   static constexpr unsigned KERNEL_SZ = KERNEL::KERNEL_SZ;
+  static constexpr bool CONJUGATE = KERNEL::CONJUGATE;
+  static_assert( CONJUGATE_TPL == CONJUGATE, "mismatching template parameters of caware_kernel and it's kernel" );
 
   HEDLEY_NO_THROW
   static void uu_out(
@@ -36,13 +38,13 @@ struct caware_kernel<T, transpose_kernels::KERNEL_NAME<T> >
         KERNEL_OP_UU();
       }
       if ( col < M )  // tail columns with KERNEL_SZ rows
-        caware_kernel_out_tail( &pin[in_row_off+row], &pout[out_row_off+col], KERNEL_SZ, M - col, rowSizeA, rowSizeB );
+        tail_transpose_out<T, T, CONJUGATE>( &pin[in_row_off+row], &pout[out_row_off+col], KERNEL_SZ, M - col, rowSizeA, rowSizeB );
     }
     if ( row < N ) {  // tail rows: #rows < KERNEL_SZ, #cols == KERNEL_SZ
       for( col = in_row_off = 0; col + KERNEL_SZ <= M; col += KERNEL_SZ, in_row_off += in_inc )
-        caware_kernel_out_tail( &pin[in_row_off+row], &pout[out_row_off+col], N - row, KERNEL_SZ, rowSizeA, rowSizeB );
+        tail_transpose_out<T, T, CONJUGATE>( &pin[in_row_off+row], &pout[out_row_off+col], N - row, KERNEL_SZ, rowSizeA, rowSizeB );
       if ( col < M )  // tail columns - #rows < KERNEL_SZ, #cols < KERNEL_SZ
-        caware_kernel_out_tail( &pin[in_row_off+row], &pout[out_row_off+col], N - row, M - col, rowSizeA, rowSizeB );
+        tail_transpose_out<T, T, CONJUGATE>( &pin[in_row_off+row], &pout[out_row_off+col], N - row, M - col, rowSizeA, rowSizeB );
     }
   }
 
@@ -65,13 +67,13 @@ struct caware_kernel<T, transpose_kernels::KERNEL_NAME<T> >
         KERNEL_OP_UU();
       }
       if ( col < M )  // tail columns with KERNEL_SZ rows
-        caware_kernel_in_tail( &pin[in_row_off+col], &pout[out_row_off+row], KERNEL_SZ, M - col, rowSizeA, rowSizeB );
+        tail_transpose_in<T, T, CONJUGATE>( &pin[in_row_off+col], &pout[out_row_off+row], KERNEL_SZ, M - col, rowSizeA, rowSizeB );
     }
     if ( row < N ) {  // tail rows: #rows < KERNEL_SZ, #cols == KERNEL_SZ
       for( col = out_row_off = 0; col + KERNEL_SZ <= M; col += KERNEL_SZ, out_row_off += out_inc )
-        caware_kernel_in_tail( &pin[in_row_off+col], &pout[out_row_off+row], N - row, KERNEL_SZ, rowSizeA, rowSizeB );
+        tail_transpose_in<T, T, CONJUGATE>( &pin[in_row_off+col], &pout[out_row_off+row], N - row, KERNEL_SZ, rowSizeA, rowSizeB );
       if ( col < M )  // tail columns - #rows < KERNEL_SZ, #cols < KERNEL_SZ
-        caware_kernel_in_tail( &pin[in_row_off+col], &pout[out_row_off+row], N - row, M - col, rowSizeA, rowSizeB );
+        tail_transpose_in<T, T, CONJUGATE>( &pin[in_row_off+col], &pout[out_row_off+row], N - row, M - col, rowSizeA, rowSizeB );
     }
   }
 
@@ -168,8 +170,3 @@ struct caware_kernel<T, transpose_kernels::KERNEL_NAME<T> >
 
 
 } // namespace
-
-#undef KERNEL_NAME
-#undef KERNEL_INIT
-#undef KERNEL_OP_UU
-#undef KERNEL_OP_AA

@@ -2,56 +2,24 @@
 #pragma once
 
 #include "transpose_defs.hpp"
+#include "transpose_cache_aware_tails.hpp"
 
 #include <memory>
+#include <complex>
+#include <type_traits>
 
 
 namespace transpose
 {
 
 
-template <class T>
-ALWAYS_INLINE HEDLEY_NO_THROW
-static void caware_kernel_out_tail(
-  NO_ESCAPE const T * RESTRICT pin, NO_ESCAPE T * RESTRICT pout,
-  const unsigned nRows, const unsigned nCols, const unsigned rowSizeA, const unsigned rowSizeB )
-{
-  unsigned out_off = 0; // out_row_off;
-  // for( unsigned r = row; r < N; ++r, out_off += rowSizeB ) {
-  for( unsigned r = 0; r < nRows; ++r, out_off += rowSizeB ) {
-    unsigned in_off = 0; // in_row_off;
-    // for( unsigned c = col; c < M; ++c, in_off += rowSizeA )
-    for( unsigned c = 0; c < nCols; ++c, in_off += rowSizeA )
-      pout[out_off+c] = pin[in_off+r];
-  }
-}
-
-//////////////////////////////////////////////////////
-
-template <class T>
-ALWAYS_INLINE HEDLEY_NO_THROW
-static void caware_kernel_in_tail(
-  NO_ESCAPE const T * RESTRICT pin, NO_ESCAPE T * RESTRICT pout,
-  const unsigned nRows, const unsigned nCols, const unsigned rowSizeA, const unsigned rowSizeB )
-{
-  unsigned in_off = 0; // in_row_off;
-  // for( unsigned r = row; r < N; ++r, in_off += rowSizeA ) {
-  for( unsigned r = 0; r < nRows; ++r, in_off += rowSizeA ) {
-    unsigned out_off = 0; // out_row_off;
-    // for( unsigned c = col; c < M; ++c, out_off += rowSizeB )
-    for( unsigned c = 0; c < nCols; ++c, out_off += rowSizeB )
-      pout[out_off+r] = pin[in_off+c];
-  }
-}
-
-
-//////////////////////////////////////////////////////
-
-template <class T, class KERNEL>
+template <class T, bool CONJUGATE_TPL, class KERNEL>
 struct caware_kernel
 {
   static constexpr bool HAS_AA = KERNEL::HAS_AA;
   static constexpr unsigned KERNEL_SZ = KERNEL::KERNEL_SZ;
+  static constexpr bool CONJUGATE = KERNEL::CONJUGATE;
+  static_assert( CONJUGATE_TPL == CONJUGATE, "mismatching template parameters of caware_kernel and it's kernel" );
 
   HEDLEY_NO_THROW
   static void uu_out(
@@ -69,13 +37,13 @@ struct caware_kernel
         KERNEL::op_uu( &pin[in_row_off+row], &pout[out_row_off+col], rowSizeA, rowSizeB );
       }
       if ( col < M )  // tail columns with KERNEL_SZ rows
-        caware_kernel_out_tail( &pin[in_row_off+row], &pout[out_row_off+col], KERNEL_SZ, M - col, rowSizeA, rowSizeB );
+        tail_transpose_out<T, T, CONJUGATE>( &pin[in_row_off+row], &pout[out_row_off+col], KERNEL_SZ, M - col, rowSizeA, rowSizeB );
     }
     if ( row < N ) {  // tail rows: #rows < KERNEL_SZ, #cols == KERNEL_SZ
       for( col = in_row_off = 0; col + KERNEL_SZ <= M; col += KERNEL_SZ, in_row_off += in_inc )
-        caware_kernel_out_tail( &pin[in_row_off+row], &pout[out_row_off+col], N - row, KERNEL_SZ, rowSizeA, rowSizeB );
+        tail_transpose_out<T, T, CONJUGATE>( &pin[in_row_off+row], &pout[out_row_off+col], N - row, KERNEL_SZ, rowSizeA, rowSizeB );
       if ( col < M )  // tail columns - #rows < KERNEL_SZ, #cols < KERNEL_SZ
-        caware_kernel_out_tail( &pin[in_row_off+row], &pout[out_row_off+col], N - row, M - col, rowSizeA, rowSizeB );
+        tail_transpose_out<T, T, CONJUGATE>( &pin[in_row_off+row], &pout[out_row_off+col], N - row, M - col, rowSizeA, rowSizeB );
     }
   }
 
@@ -95,13 +63,13 @@ struct caware_kernel
         KERNEL::op_uu( &pin[in_row_off+col], &pout[out_row_off+row], rowSizeA, rowSizeB );
       }
       if ( col < M )  // tail columns with KERNEL_SZ rows
-        caware_kernel_in_tail( &pin[in_row_off+col], &pout[out_row_off+row], KERNEL_SZ, M - col, rowSizeA, rowSizeB );
+        tail_transpose_in<T, T, CONJUGATE>( &pin[in_row_off+col], &pout[out_row_off+row], KERNEL_SZ, M - col, rowSizeA, rowSizeB );
     }
     if ( row < N ) {  // tail rows: #rows < KERNEL_SZ, #cols == KERNEL_SZ
       for( col = out_row_off = 0; col + KERNEL_SZ <= M; col += KERNEL_SZ, out_row_off += out_inc )
-        caware_kernel_in_tail( &pin[in_row_off+col], &pout[out_row_off+row], N - row, KERNEL_SZ, rowSizeA, rowSizeB );
+        tail_transpose_in<T, T, CONJUGATE>( &pin[in_row_off+col], &pout[out_row_off+row], N - row, KERNEL_SZ, rowSizeA, rowSizeB );
       if ( col < M )  // tail columns - #rows < KERNEL_SZ, #cols < KERNEL_SZ
-        caware_kernel_in_tail( &pin[in_row_off+col], &pout[out_row_off+row], N - row, M - col, rowSizeA, rowSizeB );
+        tail_transpose_in<T, T, CONJUGATE>( &pin[in_row_off+col], &pout[out_row_off+row], N - row, M - col, rowSizeA, rowSizeB );
     }
   }
 

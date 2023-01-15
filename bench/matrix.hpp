@@ -4,8 +4,11 @@
 #include "transpose_defs.hpp"
 
 #include <iostream>
+#include <iomanip>  // setprecision
 #include <memory>
 #include <cassert>
+#include <complex.h>
+#include <type_traits>
 
 
 template <class T>
@@ -62,7 +65,10 @@ struct matrix
   void init() {
     for( unsigned r = 0; r < nRows; ++r ) {
       for( unsigned c = 0; c < rowSize; ++c ) {
-        operator()(r,c) = (nCols * r) + ( c + 1 );
+        if constexpr ( std::is_same<T, std::complex<float> >::value )
+          operator()(r,c) = std::complex<float>( (nCols * r) + ( c + 1 ), 1 + (c & 1) );
+        else
+          operator()(r,c) = (nCols * r) + ( c + 1 );
       }
     }
   }
@@ -87,10 +93,16 @@ struct matrix
   }
 
   // remember its out of situ so output of transpose is always the same no matter how many iterations
-  void verify_transposed() const {
+  void verify_transposed(bool cj = false) const {
     for( unsigned c = 0; c < nRows; ++c ) {
       for( unsigned r = 0; r < nCols; ++r ) {
         T e = (T)( (nRows * r) + ( c + 1 ) );
+        if constexpr ( std::is_same<T, std::complex<float> >::value ) {
+          if ( cj )
+            e = std::conj( std::complex<float>( (nRows * r) + ( c + 1 ), 1 + (c & 1) ) );
+          else
+            e = std::complex<float>( (nRows * r) + ( c + 1 ), 1 + (c & 1) );
+        }
         if ( operator()(c,r) != e ) {
           std::cerr << "error at verification of transposed row " << c << " column " << r << ": expected = " << e << " actual = " << operator()(c,r) << "\n";
           assert( 0 );

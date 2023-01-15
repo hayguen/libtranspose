@@ -2,6 +2,9 @@
 #pragma once
 
 #include "transpose_defs.hpp"
+#include "transpose_cache_aware_tails.hpp"
+#include <complex>
+#include <type_traits>
 
 
 namespace transpose
@@ -32,7 +35,7 @@ struct mats_info
 };
 
 
-template <class T, class U, class FUNC>
+template <class T, class U, bool CONJUGATE = false>
 HEDLEY_NO_THROW
 static void cache_oblivious_in(
   NO_ESCAPE const mats_info<T,U> & RESTRICT io,
@@ -42,36 +45,32 @@ static void cache_oblivious_in(
   // RECUR_MIN: minimum number for recursion
   // constexpr unsigned RECUR_MIN = numElemsInCacheLine<T>() / 2U;  // cheat ?
   constexpr unsigned RECUR_MIN = 4;
+  static_assert( !CONJUGATE
+    || std::is_same<T, std::complex<float> >::value
+    || std::is_same<T, std::complex<double> >::value
+    , "CONJUGATE is only supported by cache_oblivious_in for std::complex<float or double>" );
 
   if ( nCols > RECUR_MIN || nRows > RECUR_MIN ) {
     if( nRows >= nCols ) {
       const unsigned halfRows = nRows / 2U;
-      cache_oblivious_in<T, U, FUNC>( io, row_off, col_off, halfRows, nCols );
-      cache_oblivious_in<T, U, FUNC>( io, row_off +halfRows, col_off, nRows - halfRows, nCols );
+      cache_oblivious_in<T, U, CONJUGATE>( io, row_off, col_off, halfRows, nCols );
+      cache_oblivious_in<T, U, CONJUGATE>( io, row_off +halfRows, col_off, nRows - halfRows, nCols );
     } else {
       const unsigned halfCols = nCols / 2U;
-      cache_oblivious_in<T, U, FUNC>( io, row_off, col_off, nRows, halfCols );
-      cache_oblivious_in<T, U, FUNC>( io, row_off, col_off +halfCols, nRows, nCols - halfCols );
+      cache_oblivious_in<T, U, CONJUGATE>( io, row_off, col_off, nRows, halfCols );
+      cache_oblivious_in<T, U, CONJUGATE>( io, row_off, col_off +halfCols, nRows, nCols - halfCols );
     }
   } else {
     const unsigned rowSize_in = io.rowSize_in;
     const unsigned rowSize_out = io.rowSize_out;
     U * RESTRICT pout = io.pout + col_off * rowSize_out + row_off;
     const T * RESTRICT pin = io.pin + row_off * rowSize_in + col_off;
-    unsigned in_row_off, out_row_off;
-    FUNC f;
-
-    for( unsigned row = in_row_off = 0; row < nRows; ++row, in_row_off += rowSize_in ) {
-      for( unsigned col = out_row_off = 0; col < nCols; ++col, out_row_off += rowSize_out ) {
-        // out[col][row] = in[row][col];
-        pout[out_row_off+row] = f( pin[in_row_off+col] );
-      }
-    }
+    tail_transpose_in<T, U, CONJUGATE>( pin, pout, nRows, nCols, rowSize_in, rowSize_out );
   }
 }
 
 
-template <class T, class U, class FUNC>
+template <class T, class U, bool CONJUGATE = false>
 HEDLEY_NO_THROW
 static void cache_oblivious_out(
   NO_ESCAPE const mats_info<T,U> & RESTRICT io,
@@ -81,36 +80,32 @@ static void cache_oblivious_out(
   // RECUR_MIN: minimum number for recursion
   // constexpr unsigned RECUR_MIN = numElemsInCacheLine<T>() / 2U;  // cheat ?
   constexpr unsigned RECUR_MIN = 4;
+  static_assert( !CONJUGATE
+    || std::is_same<T, std::complex<float> >::value
+    || std::is_same<T, std::complex<double> >::value
+    , "CONJUGATE is only supported by cache_oblivious_out for std::complex<float or double>" );
 
   if ( nCols > RECUR_MIN || nRows > RECUR_MIN ) {
     if( nRows >= nCols ) {
       const unsigned halfRows = nRows / 2U;
-      cache_oblivious_out<T, U, FUNC>( io, row_off, col_off, halfRows, nCols );
-      cache_oblivious_out<T, U, FUNC>( io, row_off +halfRows, col_off, nRows - halfRows, nCols );
+      cache_oblivious_out<T, U, CONJUGATE>( io, row_off, col_off, halfRows, nCols );
+      cache_oblivious_out<T, U, CONJUGATE>( io, row_off +halfRows, col_off, nRows - halfRows, nCols );
     } else {
       const unsigned halfCols = nCols / 2U;
-      cache_oblivious_out<T, U, FUNC>( io, row_off, col_off, nRows, halfCols );
-      cache_oblivious_out<T, U, FUNC>( io, row_off, col_off +halfCols, nRows, nCols - halfCols );
+      cache_oblivious_out<T, U, CONJUGATE>( io, row_off, col_off, nRows, halfCols );
+      cache_oblivious_out<T, U, CONJUGATE>( io, row_off, col_off +halfCols, nRows, nCols - halfCols );
     }
   } else {
     const unsigned rowSize_in = io.rowSize_in;
     const unsigned rowSize_out = io.rowSize_out;
     U * RESTRICT pout = io.pout + row_off * rowSize_out + col_off;
     const T * RESTRICT pin = io.pin + col_off * rowSize_in + row_off;
-    unsigned in_row_off, out_row_off;
-    FUNC f;
-
-    for( unsigned row = out_row_off = 0; row < nRows; ++row, out_row_off += rowSize_out ) {
-      for( unsigned col = in_row_off = 0; col < nCols; ++col, in_row_off += rowSize_in ) {
-        // out[row][col] = in[col][row];
-        pout[out_row_off+col] = f( pin[in_row_off+row] );
-      }
-    }
+    tail_transpose_out<T, U, CONJUGATE>( pin, pout, nRows, nCols, rowSize_in, rowSize_out );
   }
 }
 
 
-template <class T, class U, class FUNC>
+template <class T, class U, bool CONJUGATE = false>
 HEDLEY_NO_THROW
 static void cache_oblivious_in(
   const mat_info &in, NO_ESCAPE const T * RESTRICT pin,
@@ -121,11 +116,11 @@ static void cache_oblivious_in(
     in.nRows, in.nCols, in.rowSize,
     out.nRows, out.nCols, out.rowSize
   };
-  return cache_oblivious_in<T, U, FUNC>( io, 0, 0, in.nRows, in.nCols );
+  return cache_oblivious_in<T, U, CONJUGATE>( io, 0, 0, in.nRows, in.nCols );
 }
 
 
-template <class T, class U, class FUNC>
+template <class T, class U, bool CONJUGATE = false>
 HEDLEY_NO_THROW
 static void cache_oblivious_out(
   const mat_info &in, NO_ESCAPE const T * RESTRICT pin,
@@ -136,11 +131,11 @@ static void cache_oblivious_out(
     in.nRows, in.nCols, in.rowSize,
     out.nRows, out.nCols, out.rowSize
   };
-  return cache_oblivious_out<T, U, FUNC>( io, 0, 0, out.nRows, out.nCols );
+  return cache_oblivious_out<T, U, CONJUGATE>( io, 0, 0, out.nRows, out.nCols );
 }
 
 
-template <class T, class U, class FUNC>
+template <class T, class U, bool CONJUGATE = false>
 HEDLEY_NO_THROW
 static void cache_oblivious_meta(
   const mat_info &in, NO_ESCAPE const T * RESTRICT pin,
@@ -152,9 +147,9 @@ static void cache_oblivious_meta(
     out.nRows, out.nCols, out.rowSize
   };
   if ( in.nRows < in.nCols )
-    cache_oblivious_in<T, U, FUNC>( io, 0, 0, in.nRows, in.nCols );
+    cache_oblivious_in<T, U, CONJUGATE>( io, 0, 0, in.nRows, in.nCols );
   else
-    cache_oblivious_out<T, U, FUNC>( io, 0, 0, out.nRows, out.nCols );
+    cache_oblivious_out<T, U, CONJUGATE>( io, 0, 0, out.nRows, out.nCols );
 }
 
 

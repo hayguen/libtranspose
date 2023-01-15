@@ -18,16 +18,19 @@
 namespace transpose_kernels
 {
 
-template <class T>
+template <class T, bool CONJUGATE_TPL = false>
 struct SSE41_8x8x8Kernel
 {
   // requires SSE4.1
   static constexpr unsigned KERNEL_SZ = 8;
+  static constexpr bool CONJUGATE = CONJUGATE_TPL;
+  static_assert( !CONJUGATE_TPL, "CONJUGATE is not supported by SSE41_8x8x8Kernel" );
   using BaseType = uint8_t;
 
   static constexpr bool HAS_AA = false;
 };
 
+} // namespace
 
 #define KERNEL_NAME SSE41_8x8x8Kernel
 
@@ -87,9 +90,7 @@ struct SSE41_8x8x8Kernel
     *((uint64_t*)(B + 7 * rowSizeB)) = _mm_extract_epi64(store3, 1);                                \
   } while (0)
 
-} // namespace
-
-#endif
+#endif  // HAVE_SSE41_8x8x8_KERNEL
 
 #if 0
 
@@ -109,10 +110,10 @@ void TransposeBlock8x8(uint8_t *src, uint8_t *dst, int srcStride, int dstStride)
     __m128i block2 = _mm_unpacklo_epi64(shuffle2, shuffle3);
     __m128i block3 = _mm_unpackhi_epi64(shuffle2, shuffle3);
 
-    __m128i transposed0 = _mm_shuffle_epi8(block0, transpose4x4mask);   
-    __m128i transposed1 = _mm_shuffle_epi8(block1, transpose4x4mask);   
-    __m128i transposed2 = _mm_shuffle_epi8(block2, transpose4x4mask);   
-    __m128i transposed3 = _mm_shuffle_epi8(block3, transpose4x4mask);   
+    __m128i transposed0 = _mm_shuffle_epi8(block0, transpose4x4mask);
+    __m128i transposed1 = _mm_shuffle_epi8(block1, transpose4x4mask);
+    __m128i transposed2 = _mm_shuffle_epi8(block2, transpose4x4mask);
+    __m128i transposed3 = _mm_shuffle_epi8(block3, transpose4x4mask);
 
     __m128i store0 = _mm_unpacklo_epi32(transposed0, transposed2);
     __m128i store1 = _mm_unpackhi_epi32(transposed0, transposed2);

@@ -2,6 +2,9 @@
 #pragma once
 
 #include "transpose_defs.hpp"
+#include "transpose_cache_aware_tails.hpp"
+
+#include <complex>
 
 
 namespace transpose
@@ -9,7 +12,7 @@ namespace transpose
 
 //////////////////////////////////////////////////////
 
-template <class T, class U, class FUNC>
+template <class T, class U, bool CONJUGATE_TPL = false>
 HEDLEY_NO_THROW
 static void caware_out(
   const mat_info &in, NO_ESCAPE const T * RESTRICT pin,
@@ -25,7 +28,6 @@ static void caware_out(
   const unsigned out_inc = L * out.rowSize;
   const unsigned in_inc = L * in.rowSize;
   unsigned out_row_off, in_row_off, out_off, in_off;
-  FUNC f;
 
   for( row = out_row_off = 0; row + L <= N; row += L, out_row_off += out_inc ) {
     for( col = in_row_off = 0; col + L <= M; col += L, in_row_off += in_inc ) {
@@ -34,7 +36,7 @@ static void caware_out(
       for( unsigned r = row; r < row + L; ++r, out_off += out_RS ) {
         in_off = in_row_off;
         for( unsigned c = col; c < col + L; ++c, in_off += in_RS )
-          pout[out_off+c] = f( pin[in_off+r] );
+          pout[out_off+c] = pin[in_off+r];
       }
     }
     // tail columns
@@ -43,7 +45,7 @@ static void caware_out(
       for( unsigned r = row; r < N; ++r, out_off += out_RS ) {
         in_off = in_row_off;
         for( unsigned c = col; c < M; ++c, in_off += in_RS )
-          pout[out_off+c] = f( pin[in_off+r] );
+          pout[out_off+c] = pin[in_off+r];
       }
     }
   }
@@ -56,7 +58,7 @@ static void caware_out(
       for( unsigned r = row; r < N; ++r, out_off += out_RS ) {
         in_off = in_row_off;
         for( unsigned c = col; c < col + L; ++c, in_off += in_RS )
-          pout[out_off+c] = f( pin[in_off+r] );
+          pout[out_off+c] = pin[in_off+r];
       }
     }
     // tail columns
@@ -66,7 +68,7 @@ static void caware_out(
       for( unsigned r = row; r < N; ++r, out_off += out_RS ) {
         in_off = in_row_off;
         for( unsigned c = col; c < M; ++c, in_off += in_RS )
-          pout[out_off+c] = f( pin[in_off+r] );
+          pout[out_off+c] = pin[in_off+r];
       }
     }
   }
@@ -75,7 +77,7 @@ static void caware_out(
 //////////////////////////////////////////////////////
 
 // cache aware: 5th try
-template <class T, class U, class FUNC>
+template <class T, class U, bool CONJUGATE_TPL = false>
 HEDLEY_NO_THROW
 static void caware_in(
   const mat_info &in, NO_ESCAPE const T * RESTRICT pin,
@@ -91,7 +93,6 @@ static void caware_in(
   const unsigned out_inc = L * out.rowSize;
   const unsigned in_inc = L * in.rowSize;
   unsigned out_row_off, in_row_off, out_off, in_off;
-  FUNC f;
 
   for( row = in_row_off = 0; row + L <= N; row += L, in_row_off += in_inc ) {
     for( col = out_row_off = 0; col + L <= M; col += L, out_row_off += out_inc ) {
@@ -100,7 +101,7 @@ static void caware_in(
       for( unsigned r = row; r < row + L; ++r, in_off += in_RS ) {
         out_off = out_row_off;
         for( unsigned c = col; c < col + L; ++c, out_off += out_RS )
-          pout[out_off+r] = f( pin[in_off+c] );
+          pout[out_off+r] = pin[in_off+c];
       }
     }
     // tail columns
@@ -109,7 +110,7 @@ static void caware_in(
       for( unsigned r = row; r < N; ++r, in_off += in_RS ) {
         out_off = out_row_off;
         for( unsigned c = col; c < M; ++c, out_off += out_RS )
-          pout[out_off+r] = f( pin[in_off+c] );
+          pout[out_off+r] = pin[in_off+c];
       }
     }
   }
@@ -122,7 +123,7 @@ static void caware_in(
       for( unsigned r = row; r < N; ++r, in_off += in_RS ) {
         out_off = out_row_off;
         for( unsigned c = col; c < col + L; ++c, out_off += out_RS )
-          pout[out_off+r] = f( pin[in_off+c] );
+          pout[out_off+r] = pin[in_off+c];
       }
     }
     // tail columns
@@ -132,7 +133,7 @@ static void caware_in(
       for( unsigned r = row; r < N; ++r, in_off += in_RS ) {
         out_off = out_row_off;
         for( unsigned c = col; c < M; ++c, out_off += out_RS )
-          pout[out_off+r] = f( pin[in_off+c] );
+          pout[out_off+r] = pin[in_off+c];
       }
     }
   }
@@ -140,7 +141,7 @@ static void caware_in(
 
 //////////////////////////////////////////////////////
 
-template <class T, class U, class FUNC>
+template <class T, class U, bool CONJUGATE_TPL = false>
 HEDLEY_NO_THROW
 static void caware_meta(
   const mat_info &in, NO_ESCAPE const T * RESTRICT pin,
@@ -148,9 +149,9 @@ static void caware_meta(
 {
   //if ( in.nRows * sizeof(T) < in.nCols * sizeof(U) )
   if ( in.nRows < in.nCols )
-    caware_in<T, U, FUNC>( in, pin, out, pout );
+    caware_in<T, U, CONJUGATE_TPL>( in, pin, out, pout );
   else
-    caware_out<T, U, FUNC>( in, pin, out, pout );
+    caware_out<T, U, CONJUGATE_TPL>( in, pin, out, pout );
 }
 
 }

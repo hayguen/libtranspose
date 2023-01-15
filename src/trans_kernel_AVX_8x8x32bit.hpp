@@ -15,12 +15,14 @@
 namespace transpose_kernels
 {
 
-template <class T>
+template <class T, bool CONJUGATE_TPL = false>
 struct AVX_8x8x32Kernel
 {
   // requires AVX
   static constexpr unsigned KERNEL_SZ = 8;
   static constexpr bool HAS_AA = true;
+  static constexpr bool CONJUGATE = CONJUGATE_TPL;
+  static_assert( !CONJUGATE_TPL, "CONJUGATE is not supported by AVX_8x8x32Kernel" );
 
   // => looks to be similar or slightly slower than SSE_4x4x32Kernel !
 
@@ -154,7 +156,7 @@ struct AVX_8x8x32Kernel
 
 };
 
-template <class T>
+template <class T, bool CONJUGATE_TPL = false>
 struct AVX_8x8x32VINS_Kernel
 {
   // requires AVX
@@ -162,6 +164,9 @@ struct AVX_8x8x32VINS_Kernel
   using BaseType = float;
 
   static constexpr bool HAS_AA = false;
+  static constexpr bool CONJUGATE = CONJUGATE_TPL;
+  static_assert( !CONJUGATE_TPL, "CONJUGATE is not supported by AVX_8x8x32VINS_Kernel" );
+
   ALWAYS_INLINE static void op_aa(const T * RESTRICT, T * RESTRICT, const unsigned, const unsigned) { }
 
   // => looks to be similar or slightly slower than AVX_8x8x32Kernel !

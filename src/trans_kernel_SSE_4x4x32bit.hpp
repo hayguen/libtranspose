@@ -18,12 +18,14 @@
 namespace transpose_kernels
 {
 
-template <class T>
+template <class T, bool CONJUGATE_TPL = false>
 struct SSE_4x4x32Kernel
 {
   // requires SSE
   static constexpr unsigned KERNEL_SZ = 4;
   static constexpr bool HAS_AA = true;
+  static constexpr bool CONJUGATE = CONJUGATE_TPL;
+  static_assert( !CONJUGATE_TPL, "CONJUGATE is not supported by SSE_4x4x32Kernel" );
   using BaseType = float;
 
 

@@ -18,12 +18,14 @@
 namespace transpose_kernels
 {
 
-template <class T>
+template <class T, bool CONJUGATE_TPL = false>
 struct SSE2_8x8x16Kernel
 {
   // requires SSE2
   static constexpr unsigned KERNEL_SZ = 8;
   static constexpr bool HAS_AA = true;
+  static constexpr bool CONJUGATE = CONJUGATE_TPL;
+  static_assert( !CONJUGATE_TPL, "CONJUGATE is not supported by SSE2_8x8x16Kernel" );
   using BaseType = uint16_t;
 
 
