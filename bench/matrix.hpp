@@ -67,6 +67,8 @@ struct matrix
       for( unsigned c = 0; c < rowSize; ++c ) {
         if constexpr ( std::is_same<T, std::complex<float> >::value )
           operator()(r,c) = std::complex<float>( (nCols * r) + ( c + 1 ), 1 + (c & 1) );
+        else if constexpr ( std::is_same<T, std::complex<double> >::value )
+          operator()(r,c) = std::complex<double>( (nCols * r) + ( c + 1 ), 1 + (c & 1) );
         else
           operator()(r,c) = (nCols * r) + ( c + 1 );
       }
@@ -102,6 +104,12 @@ struct matrix
             e = std::conj( std::complex<float>( (nRows * r) + ( c + 1 ), 1 + (c & 1) ) );
           else
             e = std::complex<float>( (nRows * r) + ( c + 1 ), 1 + (c & 1) );
+        }
+        if constexpr ( std::is_same<T, std::complex<double> >::value ) {
+          if ( cj )
+            e = std::conj( std::complex<double>( (nRows * r) + ( c + 1 ), 1 + (c & 1) ) );
+          else
+            e = std::complex<double>( (nRows * r) + ( c + 1 ), 1 + (c & 1) );
         }
         if ( operator()(c,r) != e ) {
           std::cerr << "error at verification of transposed row " << c << " column " << r << ": expected = " << e << " actual = " << operator()(c,r) << "\n";

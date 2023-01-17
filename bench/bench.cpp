@@ -84,6 +84,13 @@ static constexpr int N_PRINT_BEST = 5;
 #endif
   #define SAME_DTYPE_SIZES  1
   #define DTYPEX_SZ 8
+#elif BENCH_VARIANT == 99
+  // 128 bit -> 128 bit ; 16 byte -> 16 byte
+  using DTYPEX = std::complex<double>;
+  using DTYPEY = std::complex<double>;
+  using DTYPEP = std::complex<double>;
+  #define SAME_DTYPE_SIZES  1
+  #define DTYPEX_SZ 16
 #endif
 
 
@@ -193,6 +200,12 @@ static void trans_fake(
         else
           cr = std::complex<float>( (N * r) + ( c + 1 ), 1 + (c & 1) );
       }
+      if constexpr ( std::is_same<T, std::complex<double> >::value ) {
+        if constexpr (CONJUGATE)
+          cr = std::conj( std::complex<double>( (N * r) + ( c + 1 ), 1 + (c & 1) ) );
+        else
+          cr = std::complex<double>( (N * r) + ( c + 1 ), 1 + (c & 1) );
+      }
     }
   }
 
@@ -282,7 +295,11 @@ static void time_and_test( int test_idx, int iters,
 }
 
 static void enqueue(const char *n, transpose_function f, bool cj = false) {
-  assert( n_tests < 32 );
+  if ( n_tests >= int(sizeof(tests)/sizeof(tests[0])) ) {
+    std::cerr << "not enough test slots to enqueue " << n << "\n";
+    assert( 0 );
+    return;
+  }
   tests[n_tests].n = n;
   tests[n_tests].f = f;
   tests[n_tests].cycles = -1.0;
@@ -521,6 +538,51 @@ static void enqueue_64bit_tests(
 }
 
 
+static void enqueue_128bit_tests(
+  const transpose::mat_info &in, NO_ESCAPE const DTYPEX * RESTRICT pin,
+  const transpose::mat_info &out, NO_ESCAPE DTYPEY * RESTRICT pout )
+{
+#if SAME_DTYPE_SIZES && DTYPEX_SZ == 16
+
+#  ifdef HAVE_AVX_4X4X128_KERNEL
+     if ( have_AVX() ) {
+       using TRANSPOSE_CLASS = transpose::caware_kernel<DTYPEX, false, transpose_kernels::AVX_4x4x128Kernel<DTYPEX, false> >;
+       enqueue( "kernel_in  <AVX_4x4cd>_uu ", TRANSPOSE_CLASS::uu_in );
+       enqueue( "kernel_out <AVX_4x4cd>_uu ", TRANSPOSE_CLASS::uu_out );
+       if ( TRANSPOSE_CLASS::aa_possible(in, pin, out, pout) ) {
+         enqueue( "kernel_in  <AVX_4x4cd>_aa ", TRANSPOSE_CLASS::aa_in );
+         enqueue( "kernel_out <AVX_4x4cd>_aa ", TRANSPOSE_CLASS::aa_out );
+       }
+
+       using TRANSPOSE_CJ_CL = transpose::caware_kernel<DTYPEX, true, transpose_kernels::AVX_4x4x128Kernel<DTYPEX, true> >;
+       enqueue( "kernel_in <AVX_4x4c>_uu cj", TRANSPOSE_CJ_CL::uu_in, true );
+       enqueue( "kernel_out<AVX_4x4c>_uu cj", TRANSPOSE_CJ_CL::uu_out, true );
+       if ( TRANSPOSE_CJ_CL::aa_possible(in, pin, out, pout) ) {
+         enqueue( "kernel_in <AVX_4x4c>_aa cj", TRANSPOSE_CJ_CL::aa_in, true );
+         enqueue( "kernel_out<AVX_4x4c>_aa cj", TRANSPOSE_CJ_CL::aa_out, true );
+       }
+     }
+#  endif
+
+#  ifdef HAVE_MKL_KERNEL
+#    if defined(HAVE_SYSTEM_MKL)
+       enqueue( "sys/mkl_zomatcopy         ", transpose::trans_mkl64c );
+#    elif defined(HAVE_ONEAPI_MKL)
+       enqueue( "one/mkl_zomatcopy         ", transpose::trans_mkl64c );
+#    else
+       enqueue( "mkl_zomatcopy             ", transpose::trans_mkl64c );
+#    endif
+#  endif
+
+#endif
+  // suppress warnings
+  (void)in;
+  (void)out;
+  (void)pin;
+  (void)pout;
+}
+
+
 int main( int argc, char* argv[] ) {
   if ( 1 < argc && ( !strcmp(argv[1], "-h") || !strcmp(argv[1], "/h") || !strcmp(argv[1], "--help") || !strcmp(argv[1], "/help") ) ) {
     std::cout << "usage: " << argv[0] << " [-v] [-v] [<iters> [<plot_msamples> [<nRows> [<ncols> [<y_min> [ <y_max> [<input rowSize> [<output rowSize>] ] ] ] ] ] ] ]\n";
@@ -614,7 +676,7 @@ int main( int argc, char* argv[] ) {
   enqueue_16bit_tests(in_info, in.data, out_info, out.data);
   enqueue_32bit_tests(in_info, in.data, out_info, out.data);
   enqueue_64bit_tests(in_info, in.data, out_info, out.data);
-
+  enqueue_128bit_tests(in_info, in.data, out_info, out.data);
 
 #if 0
   n_tests = 0;

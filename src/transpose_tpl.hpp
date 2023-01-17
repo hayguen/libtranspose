@@ -31,6 +31,16 @@
 #  undef KERNEL_OP_AA
 #endif
 
+#include "trans_kernel_AVX_4x4x128bit_macros.hpp"
+#ifdef HAVE_AVX_4X4X128_KERNEL
+// need to use template specialization with C macros
+#  include "transpose_cache_aware_kernel_specialization.hpp"
+#  undef KERNEL_NAME
+#  undef KERNEL_INIT
+#  undef KERNEL_OP_UU
+#  undef KERNEL_OP_AA
+#endif
+
 #include "trans_kernel_SSE2_8x8x16bit.hpp"
 
 #include "trans_kernel_naive.hpp"

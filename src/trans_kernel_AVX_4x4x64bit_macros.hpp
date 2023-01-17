@@ -40,7 +40,7 @@ struct AVX_4x4x64Kernel
 // could not find another way to have single initialization of variables - other than using C macros
 #define KERNEL_INIT() \
   static constexpr uint32_t neg_bm = 0x80000000; \
-  const __m256i cj = _mm256_set_epi32 (neg_bm, 0, neg_bm, 0, neg_bm, 0, neg_bm, 0);
+  const __m256i cj = _mm256_set_epi32(neg_bm, 0, neg_bm, 0, neg_bm, 0, neg_bm, 0);
 
 // _MM_TRANSPOSE4_PD()
 // from https://github.com/romeric/Fastor/blob/master/Fastor/backend/transpose/transpose_kernels.h

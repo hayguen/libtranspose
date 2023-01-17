@@ -54,7 +54,7 @@ endif()
 
 ######################################################
 
-set(BENCH_VARIANTS "11;22;44;48;88")
+set(BENCH_VARIANTS "11;22;44;48;88;99")
 
 # template headers
 set( LIB_TPL_SOURCES
@@ -75,6 +75,7 @@ set( LIB_TPL_SOURCES
     src/trans_kernel_AVX_4x4x32bit.hpp
     src/trans_kernel_AVX_8x8x32bit.hpp
     # kernels with macro definitions
+    src/trans_kernel_AVX_4x4x128bit_macros.hpp
     src/trans_kernel_AVX_4x4x64bit_macros.hpp
     src/trans_kernel_SSE41_8x8x8bit_macros.hpp
 )
