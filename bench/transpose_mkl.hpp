@@ -16,6 +16,8 @@
 #include <transpose_defs.hpp>
 #include <complex>
 #include <type_traits>
+#include <cstdlib>
+#include <cstdio>
 
 //////////////////////////////////////////////////////
 
@@ -30,6 +32,18 @@ namespace transpose
 
 // => unfortunately, performance is not that good :-(
 //   Intel OneAPI IPP's ippiTranspose_*() is better
+
+void mkl_single_thread(int verbose) {
+  // https://www.intel.com/content/dam/develop/external/us/en/documents/mkl-affinity.pdf
+  if ( !getenv("MKL_NUM_THREADS") && !getenv("OMP_NUM_THREADS") ) {
+    if (verbose)
+      puts("limiting MKL threads, without environment var MKL_NUM_THREADS or OMP_NUM_THREADS\n");
+    mkl_set_num_threads_local(1);
+  }
+  else if (verbose)
+    puts("detected environment var MKL_NUM_THREADS or OMP_NUM_THREADS - not limiting MKL threads\n");
+}
+
 
 template <class T>
 static void trans_mkl32(

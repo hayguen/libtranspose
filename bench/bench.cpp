@@ -261,6 +261,8 @@ static StopWatch sw_bench;
 
 //////////////////////////////////////////////////////
 
+static int verbose = 0;
+
 
 // time/bench given transpose function
 //   microbenchmark repeats iter times, to get good ms values
@@ -366,6 +368,7 @@ static void enqueue_8bit_tests(
 #  endif
 
 #  if defined(HAVE_ONEAPI_IPP)
+     transpose::ipp_single_thread(verbose);
 #    if defined(HAVE_IPP_KERNEL)
        enqueue( "one/ippiTranspose         ", transpose::trans_ipp8 );
 #    endif
@@ -399,6 +402,7 @@ static void enqueue_16bit_tests(
 #  endif
 
 #  if defined(HAVE_ONEAPI_IPP)
+     transpose::ipp_single_thread(verbose);
 #    if defined(HAVE_IPP_KERNEL)
        enqueue( "one/ippiTranspose         ", transpose::trans_ipp16 );
 #    endif
@@ -469,6 +473,7 @@ static void enqueue_32bit_tests(
 #  endif
 
 #  ifdef HAVE_MKL_KERNEL
+     transpose::mkl_single_thread(verbose);
 #    if defined(HAVE_SYSTEM_MKL)
        enqueue( "sys/mkl_somatcopy         ", transpose::trans_mkl32 );
 #    elif defined(HAVE_ONEAPI_MKL)
@@ -479,6 +484,7 @@ static void enqueue_32bit_tests(
 #  endif
 
 #  if defined(HAVE_ONEAPI_IPP)
+     transpose::ipp_single_thread(verbose);
 #    if defined(HAVE_IPP_KERNEL)
        enqueue( "one/ippiTranspose         ", transpose::trans_ipp32 );
 #    endif
@@ -520,6 +526,7 @@ static void enqueue_64bit_tests(
 #  endif
 
 #  ifdef HAVE_MKL_KERNEL
+     transpose::mkl_single_thread(verbose);
 #    if defined(HAVE_SYSTEM_MKL)
        enqueue( "sys/mkl_domatcopy         ", transpose::trans_mkl64 );
 #    elif defined(HAVE_ONEAPI_MKL)
@@ -565,6 +572,7 @@ static void enqueue_128bit_tests(
 #  endif
 
 #  ifdef HAVE_MKL_KERNEL
+     transpose::mkl_single_thread(verbose);
 #    if defined(HAVE_SYSTEM_MKL)
        enqueue( "sys/mkl_zomatcopy         ", transpose::trans_mkl64c );
 #    elif defined(HAVE_ONEAPI_MKL)
@@ -597,7 +605,6 @@ int main( int argc, char* argv[] ) {
     std::cout << "  <output rowSize>  row size (space for number of columns) for output matrix; default: <nCols>\n";
     return 1;
   }
-  int verbose = 0;
   verbose             = verbose + ( (verbose+1 < argc) ? (strcmp(argv[verbose+1], "-v") ? 0 : 1) : 0 );
   verbose             = verbose + ( (verbose+1 < argc) ? (strcmp(argv[verbose+1], "-v") ? 0 : 1) : 0 );
   int iters           = (verbose+1 < argc) ? atoi(argv[verbose+1]) : 100;

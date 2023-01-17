@@ -3,12 +3,15 @@
 
 #if defined(HAVE_ONEAPI_IPP)
 #  include <ippi.h>
+#  include <ippcore.h>
 #  define HAVE_IPP_KERNEL 1
 #endif
 
 #ifdef HAVE_IPP_KERNEL
 
 #include <transpose_defs.hpp>
+#include <cstdlib>
+#include <cstdio>
 
 //////////////////////////////////////////////////////
 
@@ -20,6 +23,18 @@ namespace transpose
 
 // => looks to give best performance :-)
 //   performance is similar to SSE_4x4x32Kernel
+
+void ipp_single_thread(int verbose) {
+  // https://www.intel.com/content/www/us/en/develop/documentation/ipp-dev-reference/top/volume-1-signal-and-data-processing/support-functions/common-functions/setnumthreads.html
+  if ( !getenv("OMP_NUM_THREADS") ) {
+    if (verbose)
+      puts("limiting IPP threads, without environment var OMP_NUM_THREADS\n");
+    ippSetNumThreads(1);
+  }
+  else if (verbose)
+    puts("detected environment var OMP_NUM_THREADS - not limiting IPP threads\n");
+}
+
 
 template <class T>
 static void trans_ipp32(
